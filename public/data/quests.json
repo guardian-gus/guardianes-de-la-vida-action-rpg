@@ -1,0 +1,56 @@
+[
+  {
+    "id": "quest_clean_lymph_node",
+    "title": "Purificar el Ganglio",
+    "description": "Derrota patógenos y activa el Núcleo de Memoria Inmune.",
+    "objectives": [
+      {
+        "type": "defeat",
+        "target": "virus_minor",
+        "count": 5,
+        "current": 0,
+        "label": "Derrotar Virus Menores"
+      },
+      {
+        "type": "defeat",
+        "target": "bacteria_invader",
+        "count": 2,
+        "current": 0,
+        "label": "Derrotar Bacterias Invasoras"
+      },
+      {
+        "type": "interact",
+        "target": "memory_core",
+        "count": 1,
+        "current": 0,
+        "label": "Activar Núcleo de Memoria Inmune"
+      }
+    ],
+    "rewards": {
+      "xp": 50,
+      "adn": 5,
+      "fotones": 10
+    },
+    "nextQuest": "quest_defeat_boss"
+  },
+  {
+    "id": "quest_defeat_boss",
+    "title": "Derrotar al Patógeno Alfa",
+    "description": "El jefe del ganglio ha emergido. ¡Derrótalo para completar la misión!",
+    "objectives": [
+      {
+        "type": "defeat",
+        "target": "alpha_pathogen",
+        "count": 1,
+        "current": 0,
+        "label": "Derrotar al Patógeno Alfa"
+      }
+    ],
+    "rewards": {
+      "xp": 80,
+      "adn": 8,
+      "fotones": 15
+    },
+    "nextQuest": null
+  }
+]

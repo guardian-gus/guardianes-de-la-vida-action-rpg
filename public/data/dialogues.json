@@ -1,0 +1,28 @@
+[
+  {
+    "id": "intro_centinela",
+    "speaker": "Centinela Linfático",
+    "portrait": "npc_centinela",
+    "lines": [
+      "¡Guardiana, al fin llegas!",
+      "El ganglio está detectando señales de infección.",
+      "Derrota a los patógenos y activa el Núcleo de Memoria Inmune.",
+      "Recuerda: los anticuerpos ayudan a reconocer amenazas específicas."
+    ],
+    "onComplete": {
+      "type": "startQuest",
+      "questId": "quest_clean_lymph_node"
+    }
+  },
+  {
+    "id": "npc_after_quest",
+    "speaker": "Centinela Linfático",
+    "portrait": "npc_centinela",
+    "lines": [
+      "¡Increíble trabajo, Lynfa!",
+      "El ganglio está despejado. El sistema inmune recuerda estos patógenos.",
+      "Ahora la próxima infección será combatida más rápido."
+    ],
+    "onComplete": null
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "virus_minor",
+    "name": "Virus Menor",
+    "spriteKey": "virus_minor",
+    "maxHp": 30,
+    "speed": 80,
+    "attack": 6,
+    "defense": 0,
+    "xp": 8,
+    "behavior": "chase",
+    "contactDamage": true
+  },
+  {
+    "id": "bacteria_invader",
+    "name": "Bacteria Invasora",
+    "spriteKey": "bacteria_invader",
+    "maxHp": 55,
+    "speed": 55,
+    "attack": 9,
+    "defense": 2,
+    "xp": 12,
+    "behavior": "chase",
+    "contactDamage": true
+  },
+  {
+    "id": "infected_cell",
+    "name": "Célula Infectada",
+    "spriteKey": "infected_cell",
+    "maxHp": 70,
+    "speed": 65,
+    "attack": 10,
+    "defense": 1,
+    "xp": 16,
+    "behavior": "dash",
+    "contactDamage": true
+  }
+]
