@@ -1,0 +1,17 @@
+[
+  {
+    "id": "patogeno_alfa",
+    "name": "VIH",
+    "maxHp": 400,
+    "attack": 25,
+    "speed": 80,
+    "xp": 500,
+    "width": 96,
+    "height": 96,
+    "color": "0xE67E22",
+    "phases": {
+      "phase2_threshold": 0.66,
+      "phase3_threshold": 0.33
+    }
+  }
+]

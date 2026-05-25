@@ -1,0 +1,22 @@
+[
+  {
+    "id": "quest_clean_lymph_node",
+    "title": "Purificar el Ganglio",
+    "description": "El Centinela Linfático te ha pedido que limpies la zona de amenazas.",
+    "objectives": [
+      {
+        "type": "defeat",
+        "target": "virus_minor",
+        "count": 3,
+        "current": 0,
+        "label": "Derrotar Virus Menores"
+      }
+    ],
+    "rewards": {
+      "xp": 50,
+      "adn": 5,
+      "fotones": 10
+    },
+    "nextQuest": null
+  }
+]

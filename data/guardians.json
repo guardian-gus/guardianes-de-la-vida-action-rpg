@@ -1,0 +1,56 @@
+[
+  {
+    "id": "lynfa",
+    "name": "Lynfa",
+    "role": "Plasmocito",
+    "title": "Guardiana de la Memoria Inmune",
+    "hexagon": "Memoria Inmune",
+    "spriteKey": "lynfa",
+    "maxHp": 120,
+    "maxEnergy": 80,
+    "speed": 145,
+    "attack": 12,
+    "defense": 4,
+    "basicAttack": {
+      "name": "Pulso de Anticuerpos",
+      "damage": 12,
+      "cooldown": 350,
+      "range": 28
+    },
+    "skill": {
+      "id": "antibody_wave",
+      "name": "Onda de Anticuerpos",
+      "cost": 25,
+      "damage": 25,
+      "cooldown": 1500,
+      "description": "Libera una onda que debilita patógenos cercanos."
+    }
+  },
+  {
+    "id": "eri",
+    "name": "Eri",
+    "role": "Eritrocito",
+    "title": "Guardiana de la Circulación",
+    "hexagon": "Circulación Nutrientes",
+    "spriteKey": "eri",
+    "maxHp": 110,
+    "maxEnergy": 90,
+    "speed": 170,
+    "attack": 10,
+    "defense": 3,
+    "basicAttack": {
+      "name": "Impulso Hemático",
+      "damage": 10,
+      "cooldown": 300,
+      "range": 26
+    },
+    "skill": {
+      "id": "oxygen_dash",
+      "name": "Impulso de Oxigenación",
+      "cost": 20,
+      "damage": 18,
+      "cooldown": 1200,
+      "description": "Avanza rápidamente llevando oxígeno y empujando enemigos."
+    }
+  }
+]

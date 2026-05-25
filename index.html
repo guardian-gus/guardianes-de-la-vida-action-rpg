@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO y metadatos -->
+    <title>Guardianes de la Vida: Misión Celular</title>
+    <meta
+      name="description"
+      content="Videojuego 2D de acción RPG educativo. Explora el cuerpo humano con los Guardianes de la Vida, combate patógenos y aprende biología celular."
+    />
+    <meta name="author" content="Guardianes de la Vida" />
+    <meta name="theme-color" content="#9B59B6" />
+
+    <!-- Fuente monoespaciada para pixel art UI -->
+    <!-- NOTE: En el futuro se puede cambiar a una fuente pixel art personalizada -->
+    <style>
+      /* ============================================================
+         Estilos base del contenedor del juego.
+         Phaser maneja todo lo visual dentro del canvas.
+         Este CSS solo configura el entorno que rodea el canvas.
+         ============================================================ */
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #000000; /* Fondo negro mientras el juego carga */
+        overflow: hidden;           /* Sin scroll: el juego ocupa toda la pantalla */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* El contenedor donde Phaser monta el canvas */
+      #game-canvas {
+        /* Phaser se encarga del tamaño del canvas automáticamente.
+           El modo de escala FIT ajusta el canvas al tamaño disponible. */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* El canvas de Phaser: desactivar suavizado para pixel art nítido */
+      canvas {
+        image-rendering: pixelated;        /* Chrome, Edge */
+        image-rendering: crisp-edges;      /* Firefox */
+        image-rendering: -webkit-optimize-contrast; /* Safari */
+        display: block;
+      }
+    </style>
+    <script type="module" crossorigin src="/guardianes-de-la-vida-action-rpg/assets/index-D0GAZP0E.js"></script>
+  </head>
+  <body>
+    <!--
+      Contenedor del juego.
+      Phaser crea el elemento <canvas> aquí automáticamente.
+      El 'parent' en gameConfig.js debe coincidir con este ID.
+    -->
+    <div id="game-canvas"></div>
+
+    <!--
+      Punto de entrada de JavaScript.
+      Vite procesa este módulo y sus importaciones automáticamente.
+      type="module" permite usar ES6 imports en el navegador.
+    -->
+  </body>
+</html>
