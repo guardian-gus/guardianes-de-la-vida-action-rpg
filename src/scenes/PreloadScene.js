@@ -48,12 +48,18 @@ class PreloadScene extends Phaser.Scene {
     // DATOS JSON
     // Se cargan como archivos JSON y quedan disponibles en
     // this.cache.json.get('nombreClave')
+    //
+    // IMPORTANTE: usamos import.meta.env.BASE_URL para que Vite
+    // inyecte la ruta correcta tanto en desarrollo ('/')
+    // como en GitHub Pages ('/guardianes-de-la-vida-action-rpg/').
+    // Jamás usar rutas absolutas hardcodeadas ('/data/...') aquí.
     // ============================================================
-    this.load.json('guardians', '/data/guardians.json');
-    this.load.json('enemies',   '/data/enemies.json');
-    this.load.json('bosses',    '/data/bosses.json');
-    this.load.json('quests',    '/data/quests.json');
-    this.load.json('dialogues', '/data/dialogues.json');
+    const base = import.meta.env.BASE_URL;
+    this.load.json('guardians', `${base}data/guardians.json`);
+    this.load.json('enemies',   `${base}data/enemies.json`);
+    this.load.json('bosses',    `${base}data/bosses.json`);
+    this.load.json('quests',    `${base}data/quests.json`);
+    this.load.json('dialogues', `${base}data/dialogues.json`);
 
     // ============================================================
     // SPRITES (PLACEHOLDER)
