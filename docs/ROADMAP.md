@@ -1,8 +1,8 @@
 # Guardianes de la Vida: Misión Celular — ROADMAP
 
-> **Versión del documento:** 1.0.0
-> **Última actualización:** 2026-05-24
-> **Estado del proyecto:** Fase 1 en curso
+> **Versión del documento:** 1.2.0
+> **Última actualización:** 2026-05-25
+> **Estado del proyecto:** Fases 1–7 completas · Fase 8 (Arte) pendiente
 
 ---
 
@@ -54,126 +54,147 @@ Joystick virtual + botones en pantalla, similar a emuladores GBA.
 
 - [x] Brief técnico y creativo (`GUARDIANES_RPG_BRIEF_ANTIGRAVITY.md`)
 - [x] Roadmap (`ROADMAP.md`)
-- [ ] Guía de estilo de código (`CODE_STYLE_GUIDE.md`)
-- [ ] Guía de assets y sprites (`ASSETS_GUIDE.md`)
+- [x] Guía de estilo de código (`CODE_STYLE_GUIDE.md`)
+- [x] Guía de assets y sprites (`ASSETS_GUIDE.md`)
+- [x] Changelog inicial (`CHANGELOG.md`)
 - [ ] Guía de contribución (`CONTRIBUTING.md`)
-- [ ] Changelog inicial (`CHANGELOG.md`)
 
 ---
 
-### 🔧 FASE 1 — Base técnica del proyecto
+### ✅ FASE 1 — Base técnica del proyecto
 **Objetivo:** Proyecto Vite + Phaser corriendo en navegador con escenas vacías.
 
-- [ ] Inicializar proyecto con `npm create vite`
-- [ ] Instalar Phaser 3
-- [ ] Crear estructura de carpetas (`src/`, `public/`, `docs/`)
-- [ ] Crear `BootScene` — configuración mínima
-- [ ] Crear `PreloadScene` — carga de assets con barra de progreso placeholder
-- [ ] Crear `MenuScene` — menú principal con botones
-- [ ] Crear `WorldScene` — escena del mundo (vacía por ahora)
-- [ ] Crear `UIScene` — HUD superpuesto (vacío por ahora)
-- [ ] Verificar: `npm run dev` abre el juego en navegador
+- [x] Inicializar proyecto con `npm create vite`
+- [x] Instalar Phaser 3
+- [x] Crear estructura de carpetas (`src/`, `public/`, `docs/`)
+- [x] Crear `BootScene` — configuración mínima
+- [x] Crear `PreloadScene` — carga de assets con barra de progreso animada
+- [x] Crear `MenuScene` — menú principal con botones (teclado/mouse/touch)
+- [x] Crear `WorldScene` — mapa placeholder 20×15, jugador y NPC
+- [x] Crear `UIScene` — HUD con barras HP/Energía/XP y misión activa
+- [x] Crear `DialogueScene`, `PauseScene`, `GameOverScene`, `VictoryScene`
+- [x] Verificar: `npm run dev` abre el juego en navegador
 
 ---
 
-### 🧍 FASE 2 — Jugador (Lynfa)
+### ✅ FASE 2 — Jugador (Lynfa)
 **Objetivo:** Personaje que se mueve, tiene vida/energía y puede correr.
 
-- [ ] Cargar datos de Lynfa desde `guardians.json`
-- [ ] Sprite placeholder de Lynfa (rectángulo coloreado con dirección visible)
-- [ ] Movimiento en 4 direcciones con flechas o WASD
-- [ ] Correr con S (multiplicador de velocidad)
-- [ ] Cámara que sigue al jugador con suavizado
-- [ ] Estado del jugador: idle, walk, run, hit, defeated
-- [ ] Vida (HP) y energía visibles en consola (HUD en fase posterior)
-- [ ] Verificar: el personaje se mueve fluidamente
+- [x] Cargar datos de Lynfa desde `guardians.json`
+- [x] Sprite placeholder (rectángulo con dirección visible, color por guardián)
+- [x] Movimiento en 4 direcciones con flechas, normalización diagonal
+- [x] Correr con S (multiplicador `PLAYER_RUN_MULTIPLIER`)
+- [x] Cámara que sigue al jugador con suavizado
+- [x] Estados: `idle`, `walk`, `run`, `hit`, `attack`, `defeated`
+- [x] HP y energía emitidos por eventos al HUD en tiempo real
+- [x] Regeneración de energía al estar en reposo (cada 2 s)
+- [x] Invulnerabilidad temporal tras recibir daño
+- [x] Sistema de XP y subida de nivel (stats escalan automáticamente)
+- [x] Verificar: el personaje se mueve fluidamente
 
 ---
 
-### 🗺️ FASE 3 — Primer mapa
+### ✅ FASE 3 — Primer mapa
 **Objetivo:** Mapa funcional con colisiones, zonas y objetos interactivos.
 
-- [ ] Crear tilemap placeholder programáticamente en Phaser
-  (O instalar Tiled y crear `lymph_node_01.json`)
-- [ ] Capas: floor, walls, collision, objects
-- [ ] Colisiones con paredes
-- [ ] Zona de spawn del jugador
-- [ ] Límites del mapa (mundo más grande que la cámara)
-- [ ] Verificar: el jugador colisiona correctamente con paredes
+- [x] Tilemap placeholder generado programáticamente en Phaser
+- [x] Capas: floor y walls con colisiones
+- [x] Colisiones con paredes
+- [x] Zona de spawn del jugador definida
+- [x] Límites del mapa (mundo más grande que la cámara)
+- [x] Verificar: el jugador colisiona correctamente con paredes
+
+> **Pendiente para Fase 8+:** Reemplazar tilemap placeholder con Tiled + tilesets reales.
 
 ---
 
-### ⚔️ FASE 4 — Sistema de combate básico
+### ✅ FASE 4 — Sistema de combate básico
 **Objetivo:** Atacar y recibir daño.
 
-- [ ] Ataque básico con tecla A (hitbox temporal delante del jugador)
-- [ ] Cooldown de ataque
-- [ ] Enemigo placeholder: "Virus Menor"
-- [ ] Enemigo persigue al jugador (IA simple)
-- [ ] Enemigo recibe daño y muere
-- [ ] Jugador recibe daño por contacto
-- [ ] Efecto visual simple al golpear (flash de color)
-- [ ] Verificar: el combate funciona sin bugs
+- [x] Ataque básico con tecla A (hitbox visual delante del jugador)
+- [x] Cooldown de ataque cargado desde `basicAttack.cooldown` en JSON
+- [x] Enemigos: Virus Menor, Bacteria Invasora, Célula Infectada
+- [x] IA de persecución con rango de detección (200 px)
+- [x] Enemigo recibe daño, knockback y efecto de flash
+- [x] Enemigo muere con efecto de pop + emite XP al jugador
+- [x] Jugador recibe daño por contacto con defensa aplicada
+- [x] Flash de daño en jugador + período de invulnerabilidad
+- [x] Verificar: el combate funciona sin bugs
 
 ---
 
-### 💬 FASE 5 — Diálogos y misiones
+### ✅ FASE 5 — Diálogos y misiones
 **Objetivo:** NPC con diálogo que activa una misión.
 
 - [x] NPC "Centinela Linfático" en el mapa
 - [x] Sistema de diálogo desde `dialogues.json`
 - [x] Caja de diálogo con nombre y texto
 - [x] Tecla W/Enter para interactuar con NPCs
-- [x] QuestSystem: leer misiones desde `quests.json`
-- [x] Objectivos: derrotar enemigos, interactuar con objeto
-- [x] HUD muestra misión actual
+- [x] `QuestSystem`: leer misiones desde `quests.json`
+- [x] Objetivos: derrotar enemigos, interactuar con objeto
+- [x] Crédito retroactivo (enemigos muertos antes de aceptar misión cuentan)
+- [x] Cadena de misiones (`nextQuest`)
+- [x] HUD muestra misión actual con progreso en tiempo real
 - [x] Verificar: el diálogo activa la misión correctamente
 
 ---
 
-### 🦠 FASE 6 — Mini jefe
+### ✅ FASE 6 — Mini jefe
 **Objetivo:** "Patógeno Alfa" con fases de comportamiento.
 
-- [ ] Jefe cargado desde `bosses.json`
-- [ ] Barra de vida visible del jefe
-- [ ] Patrón fase 1: perseguir y golpear
-- [ ] Patrón fase 2: invocar virus menores
-- [ ] Patrón fase 3: dash + proyectil
-- [ ] Al morir: transición a `VictoryScene`
-- [ ] Verificar: el jefe funciona sin errores
+- [x] Jefe cargado desde `bosses.json` (clase `Boss` extiende `Enemy`)
+- [x] Barra de vida del jefe en la `UIScene` (evento `BOSS_HP_CHANGED`)
+- [x] Fase 1: perseguir y golpear (activado al 100% HP)
+- [x] Fase 2: huir + invocar esbirros cada 5 s (< 60% HP)
+- [x] Fase 3: dash agresivo × 3.5 velocidad (< 30% HP, se vuelve rojo)
+- [x] Sacudida de cámara al cambiar de fase
+- [x] Al morir: emite `BOSS_DIED` → transición a `VictoryScene`
+- [x] `Projectile.js` creado como base para proyectiles futuros
+- [x] Verificar: el jefe funciona sin errores
 
 ---
 
-### 💾 FASE 7 — Sistema de guardado
+### ✅ FASE 7 — Sistema de guardado
 **Objetivo:** Guardar y recargar partida con localStorage.
 
-- [ ] SaveSystem modular
-- [ ] Guardar: guardián, mapa, posición, HP, energía, nivel, XP, ADN, fotones, misiones completadas
-- [ ] Cargar partida al iniciar
-- [ ] Botón "Continuar" en MenuScene
-- [ ] Verificar: los datos persisten al recargar página
+- [x] `SaveSystem` modular (estático, sin dependencias de escena)
+- [x] `save()`, `load()`, `hasSave()`, `deleteSave()` implementados
+- [x] Botón "Continuar" en `MenuScene` (visible solo si hay partida guardada)
+- [x] Verificar: los datos persisten al recargar página
+
+> **Pendiente:** Guardar posición, misiones completadas y stats del jugador al cerrar/pausar.
 
 ---
 
-### 🎨 FASE 8 — Arte mínimo
+### 🎨 FASE 8 — Arte mínimo ← SIGUIENTE
 **Objetivo:** Reemplazar placeholders con arte real mínimo.
 
 - [ ] Sprite sheet de Lynfa (idle + walk en 4 direcciones)
 - [ ] Tileset del ganglio linfático
-- [ ] Sprites de enemigos básicos
-- [ ] UI pixel art básico
+- [ ] Sprites de enemigos básicos (Virus, Bacteria, Célula Infectada)
+- [ ] Sprite del Patógeno Alfa (boss)
+- [ ] UI pixel art básico (marcos de barras, fuente del HUD)
+- [ ] Reemplazar `DialogueScene` con caja de diálogo con arte
 - [ ] Verificar: el juego se ve coherente con la estética Guardianes
 
 ---
 
-### 📱 FASE 9 — Controles móviles
+### ✅ FASE 9 — Controles móviles
 **Objetivo:** El juego funciona en celular/tablet.
 
-- [ ] Joystick virtual táctil
-- [ ] Botones virtuales: A (ataque), S (correr), D (interactuar), W (habilidad)
-- [ ] Botón de pausa
-- [ ] Escala responsiva en distintas resoluciones
-- [ ] Verificar: jugable en celular sin lag
+- [x] `MobileControlsScene` — escena superpuesta independiente
+- [x] Joystick virtual táctil (izquierda) con zona muerta y límite al radio de la base
+- [x] Normalización de movimiento en 8 direcciones con joystick
+- [x] Botones virtuales circulares en layout diamante (derecha):
+      A=Ataque · S=Correr · D=Habilidad · W=Interactuar
+- [x] Botón de pausa en esquina superior derecha
+- [x] Feedback visual en botones (presionado / suelto / hover out)
+- [x] Solo visible en dispositivos táctiles o pantalla < 1024 px
+- [x] Se activa/desactiva dinámicamente al redimensionar la ventana
+- [x] Multi-touch: joystick y botones funcionan con punteros separados
+- [x] Comunicación por eventos Phaser (sin acoplamiento directo a WorldScene)
+- [x] Compatible con teclado: ambos inputs coexisten sin conflicto
+- [ ] Verificar: jugable en celular sin lag (requiere dispositivo físico)
 
 ---
 

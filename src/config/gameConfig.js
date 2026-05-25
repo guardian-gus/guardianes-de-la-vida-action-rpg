@@ -22,6 +22,7 @@ import DialogueScene from '../scenes/DialogueScene.js';
 import PauseScene   from '../scenes/PauseScene.js';
 import GameOverScene from '../scenes/GameOverScene.js';
 import VictoryScene from '../scenes/VictoryScene.js';
+import MobileControlsScene from '../scenes/MobileControlsScene.js'; // Fase 9
 
 import { GAME_WIDTH, GAME_HEIGHT } from './constants.js';
 
@@ -77,15 +78,16 @@ const gameConfig = {
   // La PRIMERA escena de la lista es la que arranca automáticamente.
   // El orden importa para el registro interno de Phaser.
   scene: [
-    BootScene,      // 1. Configuración mínima inicial
-    PreloadScene,   // 2. Carga de assets con barra de progreso
-    MenuScene,      // 3. Menú principal
-    WorldScene,     // 4. Escena principal del juego
-    UIScene,        // 5. HUD (corre en paralelo a WorldScene)
-    DialogueScene,  // 6. Caja de diálogo
-    PauseScene,     // 7. Menú de pausa
-    GameOverScene,  // 8. Pantalla de game over
-    VictoryScene,   // 9. Pantalla de victoria
+    BootScene,             // 1. Configuración mínima inicial
+    PreloadScene,          // 2. Carga de assets con barra de progreso
+    MenuScene,             // 3. Menú principal
+    WorldScene,            // 4. Escena principal del juego
+    UIScene,               // 5. HUD (corre en paralelo a WorldScene)
+    DialogueScene,         // 6. Caja de diálogo
+    PauseScene,            // 7. Menú de pausa
+    GameOverScene,         // 8. Pantalla de game over
+    VictoryScene,          // 9. Pantalla de victoria
+    MobileControlsScene,   // 10. Controles táctiles (Fase 9)
   ],
 };
 

@@ -52,12 +52,47 @@
 
 ---
 
-## [Sin publicar — próximo]
+## [v0.2.0] — 2026-05-25 — Fases 2–7 completas
 
-### Fase 2 — Jugador (pendiente)
-- Cargar datos de Lynfa desde guardians.json
-- Estados: idle, walk, run, hit, defeated
-- HP y energía actualizándose en tiempo real en el HUD
+### Agregado — Entidades
+- `src/entities/Player.js` — Clase completa del jugador:
+  - Stats cargados desde `guardians.json` (HP, energía, velocidad, ataque, defensa)
+  - Movimiento en 4 direcciones con normalización diagonal
+  - Estados: `idle`, `walk`, `run`, `hit`, `attack`, `defeated`
+  - Cooldown de ataque, invulnerabilidad temporal, knockback desde el atacante
+  - Flash visual de daño (transparencia)
+  - Regeneración automática de energía en reposo (cada 2 s)
+  - Sistema de XP y subida de nivel (stats escalan automáticamente)
+  - Eventos Phaser hacia UIScene: `PLAYER_HP_CHANGED`, `PLAYER_ENERGY_CHANGED`, `PLAYER_XP_CHANGED`, `PLAYER_LEVEL_UP`
+- `src/entities/Enemy.js` — Clase base de enemigos:
+  - Stats dinámicos desde `enemies.json`
+  - IA de persecución con rango de detección (200 px)
+  - Knockback al recibir golpe, barra de vida pequeña visual
+  - Efecto de pop al morir + emisión de XP
+- `src/entities/Boss.js` — Jefe que extiende Enemy:
+  - 3 fases de comportamiento (perseguir / huir+invocar / dash agresivo)
+  - Umbrales de fase leídos desde `bosses.json`
+  - Sacudida de cámara al cambiar de fase
+  - Se vuelve rojo en fase 3 y acelera ×1.5
+- `src/entities/Projectile.js` — Base para proyectiles futuros
+
+### Agregado — Sistemas
+- `src/systems/QuestSystem.js` — Sistema de misiones:
+  - Carga misiones desde `quests.json`
+  - Rastreo de objetivos (matar X enemigos, interactuar con objeto)
+  - Crédito retroactivo: enemigos muertos antes de aceptar la misión cuentan
+  - Cadena de misiones automática (`nextQuest`)
+  - Eventos: `QUEST_STARTED`, `QUEST_UPDATED`, `QUEST_COMPLETED`
+- `src/systems/SaveSystem.js` — Guardado con localStorage:
+  - Métodos: `save()`, `load()`, `hasSave()`, `deleteSave()`
+  - Botón "Continuar" en MenuScene activo si hay partida guardada
+
+### Verificado
+- ✅ Jugador se mueve, corre, ataca y recibe daño
+- ✅ Enemigos persiguen y mueren correctamente
+- ✅ Boss cambia de fase y emite eventos al HUD
+- ✅ Misiones se inician, progresan y completan
+- ✅ Datos persisten al recargar la página (localStorage)
 
 ---
 

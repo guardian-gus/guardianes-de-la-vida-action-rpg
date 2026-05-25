@@ -83,13 +83,20 @@ class WorldScene extends Phaser.Scene {
     this._npcGroup  = null; // Grupo de NPCs
     this._door      = null; // Puerta hacia la sala del jefe
 
-    // --- CONTROLES ---
+    // --- CONTROLES TECLADO ---
     this._cursors  = null;
-    this._keyAttack    = null; // Z o J — ataque básico
-    this._keyRun       = null; // Shift — correr
-    this._keyInteract  = null; // E — interactuar
-    this._keySkill     = null; // X — habilidad especial
-    this._keyPause     = null; // Escape — pausa
+    this._keyAttack    = null; // A — ataque básico
+    this._keyRun       = null; // S — correr
+    this._keyInteract  = null; // W — interactuar
+    this._keySkill     = null; // D — habilidad especial
+    this._keyPause     = null; // Enter — pausa
+
+    // --- CONTROLES MÓVILES (Fase 9) ---
+    // Estado del joystick: valores normalizados [-1, 1]
+    // Se combinan con el teclado en cada frame del update().
+    this._mobileVx    = 0;
+    this._mobileVy    = 0;
+    this._mobileRun   = false; // true mientras el botón S esté presionado
   }
 
   /**
@@ -145,18 +152,17 @@ class WorldScene extends Phaser.Scene {
     // 6. Controles del teclado
     this._setupControls();
 
+    // 7. Controles móviles (joystick + botones) — Fase 9
+    this._setupMobileControls();
 
-
-    // 7. Colisiones jugador ↔ paredes, enemigos ↔ paredes
+    // 8. Colisiones jugador ↗ paredes, enemigos ↗ paredes
     this._setupCollisions();
 
-    // 8. Escuchar eventos del juego (muertes de enemigos, etc.)
+    // 9. Escuchar eventos del juego (muertes de enemigos, etc.)
     this._setupEventListeners();
 
-    // 9. Enviar stats iniciales al HUD
+    // 10. Enviar stats iniciales al HUD
     this._player.emitStats();
-
-
 
     console.log('[WorldScene] ¡Mundo listo! Jugador y enemigos activos.');
   }
@@ -176,10 +182,16 @@ class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Actualizar movimiento del jugador
-    this._player.handleMovement(this._cursors, this._keyRun);
+    // --- MOVIMIENTO: combinar teclado + joystick móvil ---
+    // Si hay input móvil activo lo aplicamos directamente al cuerpo físico;
+    // si no, handleMovement() usa el teclado normalmente.
+    if (this._mobileVx !== 0 || this._mobileVy !== 0) {
+      this._applyMobileMovement();
+    } else {
+      this._player.handleMovement(this._cursors, this._keyRun);
+    }
 
-    // Actualizar movimiento del jugador
+    // Actualizar lógica interna del jugador (invulnerabilidad, etc.)
     this._player.update(delta);
 
     // Actualizar proyectiles
@@ -374,6 +386,115 @@ class WorldScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch(SCENE.PAUSE);
     });
+  }
+
+  /**
+   * Fase 9 — Controles móviles.
+   * Lanza MobileControlsScene en paralelo y suscribe los eventos
+   * que esa escena emite en el bus de WorldScene.
+   *
+   * Separar el input táctil en su propia escena permite:
+   *   - Mantener WorldScene limpia de lógica de UI.
+   *   - Reutilizar MobileControlsScene en otras escenas (ej: BossRoom).
+   *   - Desactivar los controles sin tocar el código del mundo.
+   */
+  _setupMobileControls() {
+    // Lanzar la escena de controles si no está ya activa
+    if (!this.scene.isActive(SCENE.MOBILE_CONTROLS)) {
+      this.scene.launch(SCENE.MOBILE_CONTROLS);
+    }
+
+    // --- Joystick: movimiento ---
+    this.events.on(EVENTS.MOBILE_JOYSTICK_MOVE, ({ vx, vy }) => {
+      this._mobileVx = vx;
+      this._mobileVy = vy;
+    });
+
+    this.events.on(EVENTS.MOBILE_JOYSTICK_STOP, () => {
+      this._mobileVx = 0;
+      this._mobileVy = 0;
+    });
+
+    // --- Botón A: Ataque ---
+    this.events.on(EVENTS.MOBILE_BTN_ATTACK_DOWN, () => {
+      this._handleAttack();
+    });
+
+    // --- Botón S: Correr (hold) ---
+    this.events.on(EVENTS.MOBILE_BTN_RUN_DOWN, () => {
+      this._mobileRun = true;
+    });
+    this.events.on(EVENTS.MOBILE_BTN_RUN_UP, () => {
+      this._mobileRun = false;
+    });
+
+    // --- Botón D: Habilidad especial ---
+    this.events.on(EVENTS.MOBILE_BTN_SKILL_DOWN, () => {
+      this._handleSkill();
+    });
+
+    // --- Botón W: Interactuar ---
+    this.events.on(EVENTS.MOBILE_BTN_INTERACT_DOWN, () => {
+      this._tryInteract();
+    });
+
+    // --- Botón Pausa ---
+    this.events.on(EVENTS.MOBILE_BTN_PAUSE_DOWN, () => {
+      this.scene.pause();
+      this.scene.launch(SCENE.PAUSE);
+    });
+
+    console.log('[WorldScene] Controles móviles conectados.');
+  }
+
+  /**
+   * Aplica el movimiento del joystick virtual al jugador.
+   * Se llama en update() cuando hay input táctil activo.
+   *
+   * Convierte vx/vy normalizados [-1, 1] a velocidad de física
+   * usando el mismo multiplicador de correr que el teclado.
+   */
+  _applyMobileMovement() {
+    if (!this._player.isAlive) return;
+
+    const { PLAYER_STATE, DIRECTION } = this._getImportedEnums();
+    if (
+      this._player.state === PLAYER_STATE.ATTACK ||
+      this._player.state === PLAYER_STATE.HIT
+    ) return;
+
+    const multiplier = this._mobileRun ? 1.7 : 1.0;
+    const speed = this._player.speed * multiplier;
+
+    const vx = this._mobileVx * speed;
+    const vy = this._mobileVy * speed;
+
+    this._player.sprite.body.setVelocity(vx, vy);
+
+    // Actualizar dirección del jugador según el eje dominante
+    if (Math.abs(this._mobileVx) > Math.abs(this._mobileVy)) {
+      this._player.direction = this._mobileVx > 0 ? 'right' : 'left';
+    } else {
+      this._player.direction = this._mobileVy > 0 ? 'down' : 'up';
+    }
+
+    // Actualizar estado
+    if (this._player.state !== 'hit' && this._player.state !== 'defeated') {
+      this._player.state = this._mobileRun ? 'run' : 'walk';
+    }
+  }
+
+  /**
+   * Helper que devuelve enums importados sin re-importar el módulo.
+   * Se usan las constantes de string directamente para evitar
+   * una dependencia circular o import dinámico.
+   * @returns {{ PLAYER_STATE: Object, DIRECTION: Object }}
+   */
+  _getImportedEnums() {
+    return {
+      PLAYER_STATE: { ATTACK: 'attack', HIT: 'hit', DEFEATED: 'defeated' },
+      DIRECTION:    { UP: 'up', DOWN: 'down', LEFT: 'left', RIGHT: 'right' },
+    };
   }
 
   /**

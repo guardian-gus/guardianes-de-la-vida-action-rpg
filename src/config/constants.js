@@ -96,15 +96,16 @@ export const DIRECTION = {
 // Centralizar los nombres evita errores de tipeo al llamar
 // this.scene.start('WorldScene') vs this.scene.start('worldScene').
 export const SCENE = {
-  BOOT:      'BootScene',
-  PRELOAD:   'PreloadScene',
-  MENU:      'MenuScene',
-  WORLD:     'WorldScene',
-  UI:        'UIScene',
-  DIALOGUE:  'DialogueScene',
-  PAUSE:     'PauseScene',
-  GAME_OVER: 'GameOverScene',
-  VICTORY:   'VictoryScene',
+  BOOT:            'BootScene',
+  PRELOAD:         'PreloadScene',
+  MENU:            'MenuScene',
+  WORLD:           'WorldScene',
+  UI:              'UIScene',
+  DIALOGUE:        'DialogueScene',
+  PAUSE:           'PauseScene',
+  GAME_OVER:       'GameOverScene',
+  VICTORY:         'VictoryScene',
+  MOBILE_CONTROLS: 'MobileControlsScene', // Fase 9 — joystick + botones táctiles
 };
 
 // --- EVENTOS PERSONALIZADOS ---
@@ -123,4 +124,18 @@ export const EVENTS = {
   BOSS_SPAWNED:          'boss-spawned',
   BOSS_HP_CHANGED:       'boss-hp-changed',
   BOSS_DIED:             'boss-died',
+
+  // --- FASE 9: Controles móviles ---
+  // Emitidos por MobileControlsScene, escuchados en WorldScene.
+  MOBILE_JOYSTICK_MOVE:    'mobile-joystick-move',    // { vx, vy } en [-1, 1]
+  MOBILE_JOYSTICK_STOP:    'mobile-joystick-stop',
+  MOBILE_BTN_ATTACK_DOWN:  'mobile-btn-attack-down',
+  MOBILE_BTN_ATTACK_UP:    'mobile-btn-attack-up',
+  MOBILE_BTN_RUN_DOWN:     'mobile-btn-run-down',
+  MOBILE_BTN_RUN_UP:       'mobile-btn-run-up',
+  MOBILE_BTN_SKILL_DOWN:   'mobile-btn-skill-down',
+  MOBILE_BTN_SKILL_UP:     'mobile-btn-skill-up',
+  MOBILE_BTN_INTERACT_DOWN:'mobile-btn-interact-down',
+  MOBILE_BTN_INTERACT_UP:  'mobile-btn-interact-up',
+  MOBILE_BTN_PAUSE_DOWN:   'mobile-btn-pause-down',
 };

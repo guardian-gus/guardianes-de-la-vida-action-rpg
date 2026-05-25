@@ -1,0 +1,64 @@
+# ============================================================
+# deploy.yml
+# Descripción: GitHub Actions workflow para publicar automáticamente
+#   en GitHub Pages cada vez que se hace push a la rama main.
+#
+# Flujo:
+#   1. Checkout del código
+#   2. Instalar Node.js y dependencias
+#   3. npm run build → genera dist/
+#   4. Publicar dist/ en la rama gh-pages
+#
+# URL resultante:
+#   https://guardian-gus.github.io/guardianes-de-la-vida-action-rpg/
+#
+# Fecha: 2026-05-25
+# ============================================================
+
+name: Deploy to GitHub Pages
+
+on:
+  # Se ejecuta al hacer push a main
+  push:
+    branches:
+      - main
+  # Permite ejecutarlo manualmente desde la pestaña Actions en GitHub
+  workflow_dispatch:
+
+# Permisos necesarios para que Actions pueda publicar en gh-pages
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descargar el código del repositorio
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configurar Node.js (misma versión que usamos localmente)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Instalar dependencias (phaser, vite, etc.)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Construir el proyecto (genera la carpeta dist/)
+      - name: Build
+        run: npm run build
+
+      # 5. Publicar el contenido de dist/ en la rama gh-pages
+      #    JamesIves/github-pages-deploy-action es la acción
+      #    más usada y confiable para esto.
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist        # Carpeta a publicar
+          branch: gh-pages    # Rama destino (GitHub Pages la lee aquí)
+          clean: true         # Limpiar la rama antes de cada deploy
