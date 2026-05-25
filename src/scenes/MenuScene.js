@@ -14,13 +14,14 @@
 
 import Phaser from 'phaser';
 import { SCENE, GAME_WIDTH, GAME_HEIGHT, COLOR_LYNFA } from '../config/constants.js';
+import SaveSystem from '../systems/SaveSystem.js';
 
 // --- CONSTANTES LOCALES ---
 // Configuración visual del menú
-const TITLE_Y       = 70;   // Posición Y del título principal
-const SUBTITLE_Y    = 88;   // Posición Y del subtítulo
-const FIRST_BUTTON_Y = 140; // Posición Y del primer botón
-const BUTTON_SPACING = 22;  // Separación entre botones
+const TITLE_Y       = 320;   // Posición Y del título principal
+const SUBTITLE_Y    = 440;   // Posición Y del subtítulo
+const FIRST_BUTTON_Y = 650; // Posición Y del primer botón
+const BUTTON_SPACING = 120;  // Separación entre botones
 const MENU_CENTER_X = GAME_WIDTH / 2;
 
 class MenuScene extends Phaser.Scene {
@@ -62,23 +63,23 @@ class MenuScene extends Phaser.Scene {
     this._createTitle(cx);
 
     // --- Decoración: línea divisoria ---
-    this.add.rectangle(cx, 110, 160, 1, 0x9B59B6, 0.5);
+    this.add.rectangle(cx, 510, 1000, 6, 0x9B59B6, 0.5);
 
     // --- Botones del menú ---
     this._buildMenuOptions();
     this._createButtons(cx);
 
     // --- Versión del juego (esquina inferior derecha) ---
-    this.add.text(GAME_WIDTH - 5, GAME_HEIGHT - 5, 'v0.1.0 — Demo', {
+    this.add.text(GAME_WIDTH - 40, GAME_HEIGHT - 40, 'v0.1.0 — Demo', {
       fontFamily: 'monospace',
-      fontSize: '5px',
+      fontSize: '32px',
       color: '#555555',
     }).setOrigin(1, 1);
 
     // --- Crédito educativo ---
-    this.add.text(cx, GAME_HEIGHT - 8, 'Universo Guardianes de la Vida', {
+    this.add.text(cx, GAME_HEIGHT - 60, 'Universo Guardianes de la Vida', {
       fontFamily: 'monospace',
-      fontSize: '5px',
+      fontSize: '32px',
       color: '#7D3C98',
     }).setOrigin(0.5, 1);
 
@@ -105,17 +106,17 @@ class MenuScene extends Phaser.Scene {
     // Simula el ambiente del ganglio linfático
     const aura = this.add.graphics();
     aura.fillStyle(0x4A235A, 0.3);
-    aura.fillCircle(cx, cy, 140);
+    aura.fillCircle(cx, cy, 800);
     aura.fillStyle(0x7D3C98, 0.15);
-    aura.fillCircle(cx, cy - 20, 80);
+    aura.fillCircle(cx, cy - 80, 500);
 
     // Partículas decorativas (puntos pequeños simulando células)
     // NOTE: Son estáticas en esta versión, se animarán en fases futuras.
     for (let i = 0; i < 20; i++) {
-      const x = Phaser.Math.Between(10, GAME_WIDTH - 10);
-      const y = Phaser.Math.Between(10, GAME_HEIGHT - 10);
+      const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
+      const y = Phaser.Math.Between(40, GAME_HEIGHT - 40);
       const alpha = Phaser.Math.FloatBetween(0.1, 0.4);
-      const size = Phaser.Math.Between(1, 3);
+      const size = Phaser.Math.Between(4, 12);
       this.add.circle(x, y, size, 0x9B59B6, alpha);
     }
   }
@@ -124,24 +125,24 @@ class MenuScene extends Phaser.Scene {
    * Crea el título principal y el subtítulo del juego.
    */
   _createTitle(cx) {
-    // Sombra del título (desplazada 1 píxel)
-    this.add.text(cx + 1, TITLE_Y + 1, 'GUARDIANES DE LA VIDA', {
+    // Sombra del título (desplazada 6 píxeles)
+    this.add.text(cx + 6, TITLE_Y + 6, 'GUARDIANES DE LA VIDA', {
       fontFamily: 'monospace',
-      fontSize: '12px',
+      fontSize: '100px',
       color: '#000000',
     }).setOrigin(0.5).setAlpha(0.5);
 
     // Título principal
     this.add.text(cx, TITLE_Y, 'GUARDIANES DE LA VIDA', {
       fontFamily: 'monospace',
-      fontSize: '12px',
+      fontSize: '100px',
       color: '#D7BDE2',
     }).setOrigin(0.5);
 
     // Subtítulo: nombre de la primera demo
     this.add.text(cx, SUBTITLE_Y, '— Misión Celular —', {
       fontFamily: 'monospace',
-      fontSize: '7px',
+      fontSize: '48px',
       color: '#9B59B6',
     }).setOrigin(0.5);
   }
@@ -180,7 +181,7 @@ class MenuScene extends Phaser.Scene {
 
       const text = this.add.text(cx, y, option.label, {
         fontFamily: 'monospace',
-        fontSize:   '9px',
+        fontSize:   '56px',
         color,
       }).setOrigin(0.5);
 
@@ -250,13 +251,13 @@ class MenuScene extends Phaser.Scene {
     this._buttonTexts.forEach((text, index) => {
       if (index === this._selectedIndex) {
         // Botón seleccionado: color violeta brillante, ligeramente más grande
-        text.setStyle({ color: '#E8DAEF', fontSize: '10px' });
+        text.setStyle({ color: '#E8DAEF', fontSize: '64px' });
       } else {
         // Botón no seleccionado: color gris o más apagado
         const enabled = this._menuOptions[index].enabled;
         text.setStyle({
           color: enabled ? '#BDC3C7' : '#555555',
-          fontSize: '9px',
+          fontSize: '56px',
         });
       }
     });
@@ -288,21 +289,18 @@ class MenuScene extends Phaser.Scene {
     this.scene.launch(SCENE.UI);
   }
 
-  /**
-   * Carga la partida guardada desde localStorage y va a WorldScene.
-   */
   _continueGame() {
     if (!this._hasSavedGame) return;
 
     console.log('[MenuScene] Cargando partida guardada...');
 
-    try {
-      const savedData = JSON.parse(localStorage.getItem('guardianes_save'));
-      this.scene.start(SCENE.WORLD, { savedData, isNewGame: false });
+    const savedData = SaveSystem.load();
+    if (savedData) {
+      // Iniciar WorldScene enviándole todo lo guardado
+      this.scene.start(SCENE.WORLD, savedData);
       this.scene.launch(SCENE.UI);
-    } catch (err) {
-      console.error('[MenuScene] Error al cargar partida:', err);
-      // Si hay error en el JSON guardado, iniciar nueva partida
+    } else {
+      console.error('[MenuScene] Error al cargar partida, regresando a nueva partida.');
       this._startNewGame();
     }
   }
@@ -312,15 +310,7 @@ class MenuScene extends Phaser.Scene {
    * @returns {boolean} true si hay datos guardados.
    */
   _checkSavedGame() {
-    const saved = localStorage.getItem('guardianes_save');
-    if (!saved) return false;
-    try {
-      const data = JSON.parse(saved);
-      // Validación mínima: debe tener un guardianId
-      return Boolean(data && data.guardianId);
-    } catch {
-      return false;
-    }
+    return SaveSystem.hasSave();
   }
 }
 

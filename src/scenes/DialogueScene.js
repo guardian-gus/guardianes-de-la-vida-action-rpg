@@ -1,80 +1,169 @@
 // ============================================================
 // DialogueScene.js
-// Descripción: Escena para mostrar diálogos de NPCs.
-//   Se lanza encima de WorldScene con scene.launch().
-//   Pausa el movimiento del jugador mientras hay diálogo activo.
+// Descripción: Escena para mostrar diálogos de NPCs interactivos.
+//   Soporta condicionales y ramas de diálogo.
 //
-//   En Fase 1: estructura base lista pero sin contenido.
-//   En Fase 5: se implementa completamente con datos de dialogues.json.
-//
-// Datos recibidos al iniciar:
-//   - dialogueId: string — ID del diálogo en dialogues.json
-//
-// Fecha: 2026-05-24 | Versión: 1.0.0
+// Fecha: 2026-05-24 | Versión: 2.0.0
 // ============================================================
 
 import Phaser from 'phaser';
-import { SCENE, GAME_WIDTH, GAME_HEIGHT, DEPTH_UI, EVENTS } from '../config/constants.js';
+import { SCENE, GAME_WIDTH, GAME_HEIGHT, DEPTH_UI } from '../config/constants.js';
 
 class DialogueScene extends Phaser.Scene {
   constructor() {
     super({ key: SCENE.DIALOGUE });
-
-    this._dialogueData = null; // Datos del diálogo activo
-    this._currentLine  = 0;   // Índice de la línea actual
-    this._isTyping     = false; // ¿El texto se está escribiendo letra por letra?
+    this._dialogueId = null;
+    this._currentNodeId = null;
+    this._selectedChoiceIndex = 0;
+    this._uiElements = [];
   }
 
-  /**
-   * init(): Recibe el ID del diálogo a mostrar.
-   * @param {Object} data - { dialogueId: string }
-   */
   init(data) {
-    this._dialogueId = data.dialogueId;
-    this._currentLine = 0;
+    this._dialogueId = data.dialogueId || '0001';
+    this._currentNodeId = 'start';
+    this._selectedChoiceIndex = 0;
   }
 
   create() {
     console.log(`[DialogueScene] Iniciando diálogo: ${this._dialogueId}`);
 
-    // TODO: Implementar en Fase 5:
-    //   1. Cargar datos del diálogo desde this.cache.json.get('dialogues')
-    //   2. Crear caja de diálogo visual (pixel art)
-    //   3. Mostrar retrato del hablante
-    //   4. Animar el texto letra por letra (typewriter effect)
-    //   5. Al terminar, emitir onComplete (activar misión, etc.)
-
-    // Placeholder: caja de diálogo básica
+    // Fondo oscuro
     this.add.rectangle(
-      GAME_WIDTH / 2, GAME_HEIGHT - 30,
-      GAME_WIDTH - 10, 50,
-      0x000000, 0.85
-    ).setDepth(DEPTH_UI).setScrollFactor(0);
+      GAME_WIDTH / 2, GAME_HEIGHT - 180,
+      GAME_WIDTH - 80, 320,
+      0x0F0B1A, 0.95
+    ).setDepth(DEPTH_UI).setScrollFactor(0).setStrokeStyle(4, 0x9B59B6);
 
-    this.add.text(10, GAME_HEIGHT - 52, 'Centinela Linfático', {
+    // Controles de teclado mediante eventos directos de la escena
+    // Esto evita conflictos con las teclas creadas en WorldScene
+    this.input.keyboard.on('keydown-UP', () => this._changeSelection(-1));
+    this.input.keyboard.on('keydown-DOWN', () => this._changeSelection(1));
+    this.input.keyboard.on('keydown-W', () => this._handleAction());
+    this.input.keyboard.on('keydown-ENTER', () => this._handleAction());
+
+    this._renderNode();
+  }
+
+  _renderNode() {
+    // Limpiar elementos anteriores
+    this._uiElements.forEach(el => el.destroy());
+    this._uiElements = [];
+
+    const dialoguesDB = this.cache.json.get('dialogues');
+    const dialogueData = dialoguesDB ? dialoguesDB[this._dialogueId] : null;
+
+    if (!dialogueData || !dialogueData[this._currentNodeId]) {
+      this._closeDialogue();
+      return;
+    }
+
+    const node = dialogueData[this._currentNodeId];
+
+    // Nombre del hablante
+    const nameText = this.add.text(60, GAME_HEIGHT - 310, node.speaker, {
       fontFamily: 'monospace',
-      fontSize: '6px',
+      fontSize: '28px',
       color: '#AED6F1',
-    }).setDepth(DEPTH_UI).setScrollFactor(0);
+      fontStyle: 'bold'
+    }).setDepth(DEPTH_UI);
+    this._uiElements.push(nameText);
 
-    this.add.text(10, GAME_HEIGHT - 40, '¡Guardiana, al fin llegas! El ganglio\nestá detectando señales de infección.', {
+    // Texto principal
+    const mainText = this.add.text(60, GAME_HEIGHT - 270, node.text, {
       fontFamily: 'monospace',
-      fontSize: '6px',
+      fontSize: '24px',
       color: '#ECF0F1',
-    }).setDepth(DEPTH_UI).setScrollFactor(0);
+      wordWrap: { width: GAME_WIDTH - 120 }
+    }).setDepth(DEPTH_UI);
+    this._uiElements.push(mainText);
 
-    this.add.text(GAME_WIDTH - 25, GAME_HEIGHT - 8, '[D] continuar', {
-      fontFamily: 'monospace',
-      fontSize: '5px',
-      color: '#7F8C8D',
-    }).setDepth(DEPTH_UI).setScrollFactor(0);
+    // Renderizar opciones si hay, de lo contrario mensaje para avanzar
+    if (node.choices && node.choices.length > 0) {
+      // Posicionar opciones dinámicamente debajo del texto principal
+      const choicesStartY = mainText.y + mainText.height + 24;
 
-    // Cerrar con D
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-      .on('down', () => this.scene.stop(SCENE.DIALOGUE));
+      node.choices.forEach((choice, index) => {
+        const isSelected = index === this._selectedChoiceIndex;
+        const prefix = isSelected ? '▶ ' : '  ';
+        const color = isSelected ? '#F39C12' : '#BDC3C7';
+        
+        const choiceText = this.add.text(80, choicesStartY + (index * 36), prefix + choice.label, {
+          fontFamily: 'monospace',
+          fontSize: '22px',
+          color: color,
+        }).setDepth(DEPTH_UI);
+        
+        this._uiElements.push(choiceText);
+      });
+    } else {
+      const continueText = this.add.text(GAME_WIDTH - 60, GAME_HEIGHT - 40, '[W] o [Enter] para continuar', {
+        fontFamily: 'monospace',
+        fontSize: '20px',
+        color: '#7F8C8D',
+      }).setOrigin(1, 1).setDepth(DEPTH_UI);
+      this._uiElements.push(continueText);
+    }
+  }
 
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER)
-      .on('down', () => this.scene.stop(SCENE.DIALOGUE));
+  _changeSelection(dir) {
+    const dialoguesDB = this.cache.json.get('dialogues');
+    const dialogueData = dialoguesDB[this._dialogueId];
+    const node = dialogueData[this._currentNodeId];
+    if (!node.choices || node.choices.length === 0) return;
+
+    this._selectedChoiceIndex += dir;
+    if (this._selectedChoiceIndex < 0) {
+      this._selectedChoiceIndex = node.choices.length - 1;
+    } else if (this._selectedChoiceIndex >= node.choices.length) {
+      this._selectedChoiceIndex = 0;
+    }
+
+    this._renderNode();
+  }
+
+  _handleAction() {
+    const dialoguesDB = this.cache.json.get('dialogues');
+    const dialogueData = dialoguesDB[this._dialogueId];
+    const node = dialogueData[this._currentNodeId];
+
+    if (node.choices && node.choices.length > 0) {
+      // Avanzar a la rama seleccionada
+      const selectedChoice = node.choices[this._selectedChoiceIndex];
+      this._currentNodeId = selectedChoice.nextNode;
+      this._selectedChoiceIndex = 0; // Resetear índice para el nuevo nodo
+      this._renderNode();
+    } else {
+      // Procesar acciones adjuntas al nodo (ej. startQuest, checkQuest)
+      if (node.action) {
+        const worldScene = this.scene.get(SCENE.WORLD);
+        if (worldScene && worldScene._questSystem) {
+          if (node.action.type === 'startQuest') {
+            worldScene._questSystem.startQuest(node.action.questId);
+            this._closeDialogue();
+          } else if (node.action.type === 'checkQuest') {
+            const quest = worldScene._questSystem.getActiveQuest();
+            if (quest && quest.id === node.action.questId) {
+              const allComplete = quest.objectives.every(obj => obj.current >= obj.count);
+              this._currentNodeId = allComplete ? 'truth_confirmed' : 'lie_detected';
+              this._selectedChoiceIndex = 0;
+              this._renderNode();
+            }
+          } else if (node.action.type === 'completeQuest') {
+            worldScene._questSystem.forceCompleteQuest();
+            this._closeDialogue();
+          }
+        }
+      } else {
+        // Terminar el diálogo
+        this._closeDialogue();
+      }
+    }
+  }
+
+  _closeDialogue() {
+    console.log('[DialogueScene] Diálogo terminado.');
+    this.scene.resume(SCENE.WORLD);
+    this.scene.stop(SCENE.DIALOGUE);
   }
 }
 

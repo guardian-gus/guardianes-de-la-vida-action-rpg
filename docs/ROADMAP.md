@@ -120,14 +120,14 @@ Joystick virtual + botones en pantalla, similar a emuladores GBA.
 ### 💬 FASE 5 — Diálogos y misiones
 **Objetivo:** NPC con diálogo que activa una misión.
 
-- [ ] NPC "Centinela Linfático" en el mapa
-- [ ] Sistema de diálogo desde `dialogues.json`
-- [ ] Caja de diálogo con nombre y texto
-- [ ] Tecla D para interactuar con NPCs
-- [ ] QuestSystem: leer misiones desde `quests.json`
-- [ ] Objectivos: derrotar enemigos, interactuar con objeto
-- [ ] HUD muestra misión actual
-- [ ] Verificar: el diálogo activa la misión correctamente
+- [x] NPC "Centinela Linfático" en el mapa
+- [x] Sistema de diálogo desde `dialogues.json`
+- [x] Caja de diálogo con nombre y texto
+- [x] Tecla W/Enter para interactuar con NPCs
+- [x] QuestSystem: leer misiones desde `quests.json`
+- [x] Objectivos: derrotar enemigos, interactuar con objeto
+- [x] HUD muestra misión actual
+- [x] Verificar: el diálogo activa la misión correctamente
 
 ---
 

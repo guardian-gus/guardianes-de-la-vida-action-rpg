@@ -35,28 +35,28 @@ class PauseScene extends Phaser.Scene {
       .setScrollFactor(0).setDepth(DEPTH_UI);
 
     // Panel central
-    this.add.rectangle(cx, cy, 160, 120, 0x1A0A2E, 0.95)
+    this.add.rectangle(cx, cy, 640, 480, 0x1A0A2E, 0.95)
       .setScrollFactor(0).setDepth(DEPTH_UI);
 
-    this.add.text(cx, cy - 45, 'PAUSA', {
+    this.add.text(cx, cy - 180, 'PAUSA', {
       fontFamily: 'monospace',
-      fontSize: '10px',
+      fontSize: '40px',
       color: '#9B59B6',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(DEPTH_UI);
 
     // Opciones del menú (placeholders)
     const options = ['📊 Estadísticas', '🎒 Inventario', '⚙️  Opciones', '↩  Continuar'];
     options.forEach((opt, i) => {
-      this.add.text(cx, cy - 20 + i * 18, opt, {
+      this.add.text(cx, cy - 80 + i * 72, opt, {
         fontFamily: 'monospace',
-        fontSize: '7px',
+        fontSize: '28px',
         color: i === 3 ? '#9B59B6' : '#BDC3C7',
       }).setOrigin(0.5).setScrollFactor(0).setDepth(DEPTH_UI);
     });
 
-    this.add.text(cx, cy + 48, 'Enter para continuar', {
+    this.add.text(cx, cy + 192, 'Enter para continuar', {
       fontFamily: 'monospace',
-      fontSize: '5px',
+      fontSize: '20px',
       color: '#555555',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(DEPTH_UI);
 

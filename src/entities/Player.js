@@ -67,6 +67,9 @@ class Player {
 
     // Temporizador de cooldown del ataque básico
     this._attackCooldown = 0;
+    
+    // Temporizador de inactividad (para recuperar energía)
+    this._idleTimer = 0;
 
     // Elegir el color del placeholder según el guardián
     const placeholderColor = this.id === 'eri' ? COLOR_ERI : COLOR_LYNFA;
@@ -91,9 +94,9 @@ class Player {
     // --- ETIQUETA DE NOMBRE (debug, se elimina cuando haya sprites) ---
     this._label = scene.add.text(x, y - 22, this.name, {
       fontFamily: 'monospace',
-      fontSize:   '4px',
+      fontSize:   '16px',
       color:      '#FFFFFF',
-    }).setOrigin(0.5).setDepth(DEPTH_PLAYER);
+    }).setOrigin(0.5).setDepth(DEPTH_PLAYER).setScale(0.25);
 
     console.log(`[Player] ${this.name} (${this.role}) creada — HP: ${this.hp}/${this.maxHp}`);
   }
@@ -178,6 +181,21 @@ class Player {
       this.state = PLAYER_STATE.IDLE;
       // Restaurar visibilidad (el flash lo pone invisible brevemente)
       this._graphic.setAlpha(1);
+    }
+    
+    // Sistema de regeneración de energía (Fase 9)
+    if (this.state === PLAYER_STATE.IDLE) {
+      this._idleTimer += delta;
+      if (this._idleTimer >= 2000) {
+        this._idleTimer = 0;
+        if (this.energy < this.maxEnergy) {
+          this.energy = Math.min(this.energy + 10, this.maxEnergy);
+          this._scene.events.emit(EVENTS.PLAYER_ENERGY_CHANGED, { current: this.energy, max: this.maxEnergy });
+        }
+      }
+    } else {
+      // Si se mueve o ataca, se reinicia el temporizador de reposo
+      this._idleTimer = 0;
     }
 
     // Actualizar posición del gráfico y la etiqueta
@@ -309,7 +327,11 @@ class Player {
    * Se llama desde CombatSystem cuando se ejecuta un ataque.
    */
   triggerAttackCooldown() {
-    this._attackCooldown = this.basicAttackData.cooldown;
+    // Si la propiedad existe en JSON se usa, si no, fallback a 300ms
+    const cd = this.basicAttackData ? this.basicAttackData.cooldown : 300;
+    this._attackCooldown = cd;
+    // Detener la regeneración al atacar
+    this._idleTimer = 0;
     this.state = PLAYER_STATE.ATTACK;
 
     // El estado ATTACK dura solo 200ms (se ve el swing)
@@ -442,6 +464,20 @@ class Player {
     this._scene.time.delayedCall(2000, () => {
       this._scene.scene.start('GameOverScene');
     });
+  }
+  /**
+   * Intenta gastar energía. Retorna true si fue exitoso, false si no hay suficiente.
+   * @param {number} cost 
+   * @returns {boolean}
+   */
+  useEnergy(cost) {
+    if (this.energy >= cost) {
+      this.energy -= cost;
+      this._scene.events.emit(EVENTS.PLAYER_ENERGY_CHANGED, { current: this.energy, max: this.maxEnergy });
+      this._idleTimer = 0; // Gastar energía rompe el reposo
+      return true;
+    }
+    return false;
   }
 }
 

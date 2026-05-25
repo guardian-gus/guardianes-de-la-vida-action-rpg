@@ -13,6 +13,7 @@
 
 import Phaser from 'phaser';
 import gameConfig from './config/gameConfig.js';
+import VictoryScene from './scenes/VictoryScene.js';
 
 // Crear la instancia principal del juego de Phaser.
 // Phaser se monta automáticamente en el elemento 'game-canvas' del HTML.

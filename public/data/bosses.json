@@ -1,35 +1,17 @@
 [
   {
-    "id": "alpha_pathogen",
-    "name": "Patógeno Alfa",
-    "spriteKey": "alpha_pathogen",
-    "maxHp": 250,
-    "speed": 60,
-    "attack": 14,
-    "defense": 3,
-    "xp": 80,
-    "behavior": "boss_alpha",
-    "phases": [
-      {
-        "hpAbove": 0.66,
-        "pattern": "chase_and_hit",
-        "description": "Persigue al jugador y golpea al contacto."
-      },
-      {
-        "hpAbove": 0.33,
-        "pattern": "summon_virus",
-        "description": "Invoca virus menores mientras ataca."
-      },
-      {
-        "hpAbove": 0,
-        "pattern": "dash_and_projectile",
-        "description": "Realiza dashes rápidos y lanza proyectiles."
-      }
-    ],
-    "rewards": {
-      "xp": 80,
-      "adn": 8,
-      "fotones": 15
+    "id": "patogeno_alfa",
+    "name": "VIH",
+    "maxHp": 400,
+    "attack": 25,
+    "speed": 80,
+    "xp": 500,
+    "width": 96,
+    "height": 96,
+    "color": "0xE67E22",
+    "phases": {
+      "phase2_threshold": 0.66,
+      "phase3_threshold": 0.33
     }
   }
 ]

@@ -39,19 +39,21 @@ class Enemy {
     this._scene = scene;
 
     // --- STATS (desde enemies.json) ---
-    this.id            = data.id;
-    this.name          = data.name;
-    this.maxHp         = data.maxHp;
-    this.hp            = data.maxHp;
-    this.speed         = data.speed;
-    this.attack        = data.attack;
-    this.defense       = data.defense || 0;
-    this.xpReward      = data.xp;
-    this.behavior      = data.behavior || 'chase';
+    this.id = data.id;
+    this.name = data.name;
+    this.maxHp = data.maxHp;
+    this.hp = data.maxHp;
+    this.speed = data.speed;
+    this.attack = data.attack;
+    this.defense = data.defense || 0;
+    this.xpReward = data.xp;
+    this.behavior = data.behavior || 'chase';
     this.contactDamage = data.contactDamage || false;
+    this.width = data.width || 32;
+    this.height = data.height || 32;
 
     // --- ESTADO ---
-    this.isAlive       = true;
+    this.isAlive = true;
     this._isKnockedBack = false;
 
     // Temporizador de knockback
@@ -66,8 +68,8 @@ class Enemy {
 
     // --- SPRITE DE FÍSICA ---
     this.sprite = scene.physics.add.sprite(x, y, null);
-    this.sprite.setDisplaySize(24, 24);
-    this.sprite.body.setSize(22, 22);
+    this.sprite.setDisplaySize(this.width, this.height);
+    this.sprite.body.setSize(this.width - 2, this.height - 2);
     this.sprite.setCollideWorldBounds(true);
     this.sprite.setDepth(DEPTH_ENEMIES);
 
@@ -76,23 +78,26 @@ class Enemy {
 
     // --- GRÁFICO PLACEHOLDER ---
     // El color varía levemente por tipo de enemigo
-    this._color   = this._getColorByType();
+    this._color = this._getColorByType();
     this._graphic = scene.add.graphics();
     this._drawGraphic(x, y);
 
     // --- BARRA DE VIDA (pequeña, encima del enemigo) ---
-    this._hpBarBg = scene.add.rectangle(x, y - 18, 24, 3, 0x333333)
+    const hpYOffset = (this.height / 2) + 6;
+    const barWidth = this.width;
+
+    this._hpBarBg = scene.add.rectangle(x, y - hpYOffset, barWidth, 4, 0x333333)
       .setDepth(DEPTH_ENEMIES + 1);
-    this._hpBarFill = scene.add.rectangle(x - 12, y - 18, 24, 3, 0xE74C3C)
+    this._hpBarFill = scene.add.rectangle(x - (barWidth / 2), y - hpYOffset, barWidth, 4, 0xE74C3C)
       .setOrigin(0, 0.5)
       .setDepth(DEPTH_ENEMIES + 2);
 
     // Etiqueta del nombre (debug)
-    this._label = scene.add.text(x, y - 22, this.name, {
+    this._label = scene.add.text(x, y - hpYOffset - 10, this.name, {
       fontFamily: 'monospace',
-      fontSize:   '4px',
-      color:      '#AAFFAA',
-    }).setOrigin(0.5).setDepth(DEPTH_ENEMIES + 2);
+      fontSize: '16px',
+      color: '#AAFFAA',
+    }).setOrigin(0.5).setDepth(DEPTH_ENEMIES + 2).setScale(0.25);
   }
 
   // ============================================================
@@ -131,10 +136,13 @@ class Enemy {
       this.sprite.body.setVelocity(0, 0);
     }
 
-    // Actualizar gráficos en la posición actual del sprite
+    // Actualizar posición de gráficos
     this._drawGraphic(this.sprite.x, this.sprite.y);
-    this._updateHPBar(this.sprite.x, this.sprite.y);
-    this._label.setPosition(this.sprite.x, this.sprite.y - 22);
+
+    const hpYOffset = (this.height / 2) + 6;
+    this._hpBarBg.setPosition(this.sprite.x, this.sprite.y - hpYOffset);
+    this._hpBarFill.setPosition(this.sprite.x - (this.width / 2), this.sprite.y - hpYOffset);
+    this._label.setPosition(this.sprite.x, this.sprite.y - hpYOffset - 10);
   }
 
   /**
@@ -252,7 +260,7 @@ class Enemy {
     const vy = Math.sin(angle) * KNOCKBACK_SPEED;
 
     this.sprite.body.setVelocity(vx, vy);
-    this._isKnockedBack  = true;
+    this._isKnockedBack = true;
     this._knockbackTimer = KNOCKBACK_DURATION;
   }
 
@@ -277,10 +285,10 @@ class Enemy {
 
     // Pequeño efecto de "pop" visual antes de destruir
     this._scene.tweens.add({
-      targets:  this._graphic,
-      alpha:    0,
-      scaleX:   2,
-      scaleY:   2,
+      targets: this._graphic,
+      alpha: 0,
+      scaleX: 2,
+      scaleY: 2,
       duration: 300,
       onComplete: () => {
         this.destroy();
@@ -289,10 +297,10 @@ class Enemy {
 
     // Emitir evento para que WorldScene y QuestSystem procesen la muerte
     this._scene.events.emit(EVENTS.ENEMY_DIED, {
-      enemyId:   this.id,
-      xpReward:  this.xpReward,
-      x:         this.sprite.x,
-      y:         this.sprite.y,
+      enemyId: this.id,
+      xpReward: this.xpReward,
+      x: this.sprite.x,
+      y: this.sprite.y,
     });
   }
 
@@ -301,57 +309,29 @@ class Enemy {
   // ============================================================
 
   /**
-   * Dibuja el placeholder visual del enemigo.
-   * Círculo verde con variaciones por tipo.
+   * Dibuja un cuadrado del tamaño dinámico para representar al enemigo.
    */
   _drawGraphic(x, y) {
     this._graphic.clear();
-
     this._graphic.fillStyle(this._color, 1);
 
-    // Forma diferente según el tipo
-    if (this.id === 'virus_minor') {
-      // Virus: estrella de 8 puntas (aproximada con dos rectángulos rotados)
-      this._graphic.fillCircle(x, y, 10);
-      this._graphic.fillStyle(0xFFFFFF, 0.3);
-      this._graphic.fillCircle(x, y, 5);
-
-    } else if (this.id === 'bacteria_invader') {
-      // Bacteria: forma ovalada (elipse)
-      this._graphic.fillEllipse(x, y, 20, 26);
-      this._graphic.fillStyle(0xFFFFFF, 0.2);
-      this._graphic.fillEllipse(x - 3, y - 4, 8, 10);
-
-    } else if (this.id === 'infected_cell') {
-      // Célula infectada: hexágono aproximado (rectángulo con bordes)
-      this._graphic.fillRect(x - 12, y - 8, 24, 16);
-      this._graphic.fillRect(x - 8, y - 12, 16, 24);
-      this._graphic.fillStyle(0x003300, 0.5);
-      this._graphic.fillCircle(x, y, 6);
-
-    } else {
-      // Genérico
-      this._graphic.fillCircle(x, y, 11);
-    }
-
-    this._graphic.setDepth(DEPTH_ENEMIES);
+    const hw = this.width / 2;
+    const hh = this.height / 2;
+    this._graphic.fillRect(x - hw, y - hh, this.width, this.height);
   }
 
   /**
    * Actualiza la barra de vida del enemigo.
    */
   _updateHPBar(x, y) {
+    const hpYOffset = (this.height / 2) + 6;
     // Fondo de la barra
-    this._hpBarBg.setPosition(x, y - 18);
+    this._hpBarBg.setPosition(x, y - hpYOffset);
 
-    // Calcular ancho proporcional al HP actual
-    const hpPercent = this.hp / this.maxHp;
-    const barWidth  = 24 * hpPercent;
-
-    // Barra de vida: se achica hacia la derecha
-    this._hpBarFill
-      .setPosition(x - 12, y - 18)
-      .setDisplaySize(Math.max(0, barWidth), 3);
+    // Actualizar barra de vida visual
+    const hpRatio = this.hp / this.maxHp;
+    this._hpBarFill.width = this.width * hpRatio;
+    this._hpBarFill.setDisplaySize(Math.max(0, this.width * hpRatio), 3);
   }
 
   /**
@@ -359,10 +339,10 @@ class Enemy {
    */
   _getColorByType() {
     switch (this.id) {
-      case 'virus_minor':      return 0x27AE60; // Verde brillante
+      case 'virus_minor': return 0x27AE60; // Verde brillante
       case 'bacteria_invader': return 0x1E8449; // Verde oscuro
-      case 'infected_cell':    return 0x7D3C98; // Violeta oscuro (célula mutada)
-      default:                 return COLOR_ENEMY;
+      case 'infected_cell': return 0x7D3C98; // Violeta oscuro (célula mutada)
+      default: return COLOR_ENEMY;
     }
   }
 }

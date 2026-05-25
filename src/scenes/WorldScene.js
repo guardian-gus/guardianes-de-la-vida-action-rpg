@@ -16,7 +16,11 @@
 
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import Enemy  from '../entities/Enemy.js';
+import Enemy from '../entities/Enemy.js';
+import Boss from '../entities/Boss.js';
+import Projectile from '../entities/Projectile.js';
+import QuestSystem from '../systems/QuestSystem.js';
+import SaveSystem from '../systems/SaveSystem.js';
 import {
   SCENE,
   GAME_WIDTH,
@@ -71,10 +75,13 @@ class WorldScene extends Phaser.Scene {
     super({ key: SCENE.WORLD });
 
     // --- OBJETOS DE JUEGO ---
-    this._player    = null; // Instancia de Player.js
-    this._enemies   = [];   // Array de instancias de Enemy.js
+    this._player = null;
+    this._enemies = [];
+    this._projectiles = []; // Manejo de proyectiles activos (Fase 9)
+    this._boss = null;
     this._walls     = null; // Grupo de física estática (paredes)
     this._npcGroup  = null; // Grupo de NPCs
+    this._door      = null; // Puerta hacia la sala del jefe
 
     // --- CONTROLES ---
     this._cursors  = null;
@@ -90,20 +97,21 @@ class WorldScene extends Phaser.Scene {
    * @param {Object} data - { guardianId, isNewGame, savedData }
    */
   init(data) {
-    this._guardianId = data.guardianId || 'lynfa';
-    this._isNewGame  = data.isNewGame !== false;
-    this._savedData  = data.savedData || null;
+    this._guardianId  = data.guardianId || 'lynfa';
+    this._isNewGame   = data.isNewGame !== false;
+    this._savedData   = data.savedData || null;
+    this._isBossRoom  = data.isBossRoom || false;
 
-    console.log(`[WorldScene] Iniciando — Guardián: ${this._guardianId} | Nueva partida: ${this._isNewGame}`);
+    console.log(`[WorldScene] Iniciando — Guardián: ${this._guardianId} | Boss Room: ${this._isBossRoom}`);
   }
 
   /**
    * create(): Construye el mundo completo en orden.
    */
   create() {
-    // Obtener los datos cargados en PreloadScene
     const guardiansData = this.cache.json.get('guardians');
     const enemiesData   = this.cache.json.get('enemies');
+    const questsData    = this.cache.json.get('quests');
 
     // Buscar los datos del guardián seleccionado
     const guardianData = guardiansData.find(g => g.id === this._guardianId);
@@ -112,23 +120,32 @@ class WorldScene extends Phaser.Scene {
       return;
     }
 
+    // Instanciar el sistema de misiones
+    this._questSystem = new QuestSystem(this, questsData);
+
     // 1. Mapa placeholder (tiles de colores)
     this._createPlaceholderMap();
 
     // 2. Jugador usando la clase Player.js
     this._spawnPlayer(guardianData);
 
-    // 3. Enemigos usando la clase Enemy.js
-    this._spawnEnemies(enemiesData);
-
-    // 4. NPC del Centinela Linfático
-    this._createNPC();
+    if (!this._isBossRoom) {
+      // 3. Enemigos normales
+      this._spawnEnemies(enemiesData);
+      // 4. NPC del Centinela Linfático
+      this._createNPC();
+    } else {
+      // Spawnear Jefe en el centro
+      this._spawnBoss();
+    }
 
     // 5. Cámara siguiendo al jugador
     this._setupCamera();
 
     // 6. Controles del teclado
     this._setupControls();
+
+
 
     // 7. Colisiones jugador ↔ paredes, enemigos ↔ paredes
     this._setupCollisions();
@@ -139,8 +156,7 @@ class WorldScene extends Phaser.Scene {
     // 9. Enviar stats iniciales al HUD
     this._player.emitStats();
 
-    // 10. Instrucciones temporales en pantalla
-    this._showInstructions();
+
 
     console.log('[WorldScene] ¡Mundo listo! Jugador y enemigos activos.');
   }
@@ -151,14 +167,34 @@ class WorldScene extends Phaser.Scene {
   update(time, delta) {
     if (!this._player || !this._player.isAlive) return;
 
+    // Actualizar jefe
+    if (this._boss && this._boss.isAlive) {
+      this._boss.update(time, delta);
+      // Colisión jefe-jugador (daño por contacto simple)
+      if (Phaser.Geom.Intersects.RectangleToRectangle(this._player.sprite.getBounds(), this._boss.sprite.getBounds())) {
+        this._player.takeDamage(this._boss.attack, this._boss);
+      }
+    }
+
     // Actualizar movimiento del jugador
     this._player.handleMovement(this._cursors, this._keyRun);
 
-    // Actualizar lógica del jugador (gráfico, timers)
+    // Actualizar movimiento del jugador
     this._player.update(delta);
 
-    // Actualizar cada enemigo activo
-    for (const enemy of this._enemies) {
+    // Actualizar proyectiles
+    for (let i = this._projectiles.length - 1; i >= 0; i--) {
+      const proj = this._projectiles[i];
+      if (proj.sprite && proj.sprite.active) {
+        proj.update(delta);
+      } else {
+        this._projectiles.splice(i, 1);
+      }
+    }
+
+    // Actualizar movimiento de enemigos vivos
+    for (let i = this._enemies.length - 1; i >= 0; i--) {
+      const enemy = this._enemies[i];
       if (enemy.isAlive) {
         enemy.update(delta);
       }
@@ -174,6 +210,7 @@ class WorldScene extends Phaser.Scene {
    */
   _createPlaceholderMap() {
     this._walls = this.physics.add.staticGroup();
+    const floorColor = this._isBossRoom ? 0x641E16 : COLOR_FLOOR;
 
     for (let row = 0; row < MAP_ROWS; row++) {
       for (let col = 0; col < MAP_COLS; col++) {
@@ -192,8 +229,8 @@ class WorldScene extends Phaser.Scene {
 
         } else {
           // Suelo: solo visual
-          this.add.rectangle(x, y, TILE_SIZE, TILE_SIZE, COLOR_FLOOR).setDepth(DEPTH_FLOOR);
-          this.add.rectangle(x, y, TILE_SIZE - 1, TILE_SIZE - 1, 0x9B6B80, 0.3).setDepth(DEPTH_FLOOR);
+          this.add.rectangle(x, y, TILE_SIZE, TILE_SIZE, floorColor).setDepth(DEPTH_FLOOR);
+          this.add.rectangle(x, y, TILE_SIZE - 1, TILE_SIZE - 1, 0x000000, 0.2).setDepth(DEPTH_FLOOR);
         }
       }
     }
@@ -220,8 +257,8 @@ class WorldScene extends Phaser.Scene {
    * @param {Array} enemiesData - Array de objetos desde enemies.json.
    */
   _spawnEnemies(enemiesData) {
-    // Los 3 enemigos base del brief (uno de cada tipo)
-    const enemyTypes = ['virus_minor', 'bacteria_invader', 'infected_cell'];
+    // Generar exactamente 3 virus menores para la misión
+    const enemyTypes = ['virus_minor', 'virus_minor', 'virus_minor'];
 
     enemyTypes.forEach((typeId, index) => {
       const data = enemiesData.find(e => e.id === typeId);
@@ -267,9 +304,9 @@ class WorldScene extends Phaser.Scene {
     // Etiqueta flotante
     this.add.text(npcX, npcY - 22, 'Centinela', {
       fontFamily: 'monospace',
-      fontSize:   '4px',
+      fontSize:   '16px',
       color:      '#AED6F1',
-    }).setOrigin(0.5).setDepth(DEPTH_ENEMIES);
+    }).setOrigin(0.5).setDepth(DEPTH_ENEMIES).setScale(0.25);
 
     // Guardar referencia para interacción
     this._npc = npc;
@@ -280,6 +317,7 @@ class WorldScene extends Phaser.Scene {
    */
   _setupCamera() {
     this.cameras.main.setBounds(0, 0, MAP_WIDTH_PX, MAP_HEIGHT_PX);
+    this.cameras.main.setZoom(4);
     this.cameras.main.startFollow(
       this._player.sprite,
       true,
@@ -301,11 +339,20 @@ class WorldScene extends Phaser.Scene {
    */
   _setupControls() {
     this._cursors     = this.input.keyboard.createCursorKeys();
-    this._keyRun      = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this._keyAttack   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
-    this._keySkill    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
-    this._keyInteract = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    this._keyPause    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this._inputKeys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.UP,
+      down: Phaser.Input.Keyboard.KeyCodes.DOWN,
+      left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+      right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      attack: Phaser.Input.Keyboard.KeyCodes.A,
+      run: Phaser.Input.Keyboard.KeyCodes.S,
+      interact: Phaser.Input.Keyboard.KeyCodes.D
+    });
+    this._keyRun      = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    this._keyAttack   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this._keySkill    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this._keyInteract = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this._keyPause    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
     // Z — Ataque básico
     this._keyAttack.on('down', () => {
@@ -317,14 +364,15 @@ class WorldScene extends Phaser.Scene {
       this._tryInteract();
     });
 
-    // X — Habilidad especial (Fase 4)
+    // X (o D) — Habilidad especial (Fase 9)
     this._keySkill.on('down', () => {
-      console.log('[WorldScene] Habilidad especial (Fase 4).');
+      this._handleSkill();
     });
 
-    // Escape — Pausa (Fase futura)
+    // Enter — Pausa
     this._keyPause.on('down', () => {
-      console.log('[WorldScene] Pausa (próximamente).');
+      this.scene.pause();
+      this.scene.launch(SCENE.PAUSE);
     });
   }
 
@@ -354,6 +402,16 @@ class WorldScene extends Phaser.Scene {
         }
       );
     }
+    
+    // Configuración global de colisiones para proyectiles (Fase 9)
+    this._projectilesGroup = this.physics.add.group();
+    
+    // Proyectiles chocan con la pared y se destruyen (solo las ráfagas)
+    this.physics.add.collider(this._projectilesGroup, this._walls, (projSprite) => {
+      if (projSprite.projectileRef && !projSprite.projectileRef.isTrap) {
+        projSprite.projectileRef.destroy();
+      }
+    });
   }
 
   /**
@@ -366,9 +424,90 @@ class WorldScene extends Phaser.Scene {
       this._player.gainXP(data.xpReward);
       console.log(`[WorldScene] Enemigo '${data.enemyId}' derrotado. +${data.xpReward} XP al jugador.`);
 
-      // Limpiar el enemigo del array (para que update() no lo procese)
-      this._enemies = this._enemies.filter(e => e.id !== data.enemyId || !e.isAlive);
+      // [APRENDIZAJE]: Originalmente hacíamos filter(e => e.id !== data.enemyId) 
+      // pero "id" representa el TIPO de enemigo ('virus_minor'), no un identificador único.
+      // Eso causaba que si matabas un virus, TODOS los virus se borraran lógicamente
+      // y se quedaran congelados. Al filtrar solo por e.isAlive, evitamos ese bug de instanciación.
+      this._enemies = this._enemies.filter(e => e.isAlive);
     });
+
+    if (!this._isBossRoom) {
+      this.events.once(EVENTS.QUEST_COMPLETED, () => {
+        this._spawnDoor();
+      });
+    }
+  }
+
+  // ============================================================
+  // MÉTODOS PRIVADOS: GESTIÓN DE JEFES Y ENEMIGOS
+  // ============================================================
+
+  _spawnDoor() {
+    console.log('[WorldScene] Aparece la puerta a la Sala del Jefe.');
+    const doorX = MAP_WIDTH_PX - TILE_SIZE * 2;
+    const doorY = MAP_HEIGHT_PX / 2;
+    
+    // Objeto de referencia y física para la puerta
+    this._door = this.physics.add.sprite(doorX, doorY, null);
+    this._door.setDisplaySize(TILE_SIZE * 2, TILE_SIZE * 4);
+    
+    // Gráfico de la puerta
+    this.add.rectangle(doorX, doorY, TILE_SIZE * 2, TILE_SIZE * 4, 0xF1C40F).setDepth(DEPTH_OBJECTS); // Puerta dorada
+    
+    // Ahora no usamos overlap automático. Se verificará al presionar 'W' en _tryInteract().
+  }
+
+  _enterBossRoom() {
+    console.log('[WorldScene] Transicionando a la Sala del Jefe...');
+    
+    // Punto de guardado automático (Fase 7)
+    SaveSystem.save({
+      guardianId: this._guardianId,
+      isBossRoom: true
+    });
+
+    this.scene.stop(SCENE.UI);
+    // Reiniciar escena con isBossRoom = true
+    this.scene.restart({ guardianId: this._guardianId, isBossRoom: true });
+    this.scene.launch(SCENE.UI);
+  }
+
+  _spawnBoss() {
+    const bossesData = this.cache.json.get('bosses');
+    if (!bossesData || bossesData.length === 0) return;
+
+    // Spawnear al jefe en el centro de la sala
+    const data = bossesData[0];
+    const spawnX = MAP_WIDTH_PX / 2;
+    const spawnY = MAP_HEIGHT_PX / 2;
+
+    this._boss = new Boss(this, data, spawnX, spawnY);
+    this._boss.setTarget(this._player);
+    
+    // Configurar colisiones explícitas para el Jefe contra las paredes
+    this.physics.add.collider(this._boss.sprite, this._walls);
+    
+    // Escuchar cuando el jefe muere para la victoria
+    this.events.once(EVENTS.BOSS_DIED, () => {
+      this.time.delayedCall(2000, () => {
+        // Pausar y transicionar
+        this.scene.stop(SCENE.UI);
+        this.scene.start(SCENE.VICTORY);
+      });
+    });
+  }
+
+  /**
+   * Crea un enemigo específico en unas coordenadas
+   */
+  _spawnMinion(x, y, enemyId) {
+    const enemiesData = this.cache.json.get('enemies');
+    const data = enemiesData.find(e => e.id === enemyId);
+    if (!data) return;
+
+    const enemy = new Enemy(this, data, x, y);
+    enemy.setTarget(this._player);
+    this._enemies.push(enemy);
   }
 
   // ============================================================
@@ -412,13 +551,94 @@ class WorldScene extends Phaser.Scene {
         console.log(`[WorldScene] ¡Golpe! ${this._player.name} → ${enemy.name}`);
       }
     }
+
+    // Revisar al jefe si existe en la escena
+    if (this._boss && this._boss.isAlive) {
+      const distBoss = Phaser.Math.Distance.Between(hitX, hitY, this._boss.sprite.x, this._boss.sprite.y);
+      // El jefe es más grande, damos un poco más de margen al rango
+      if (distBoss <= range + 48) {
+        this._boss.takeDamage(damage, px, py);
+        console.log(`[WorldScene] ¡Golpe Crítico! ${this._player.name} → ${this._boss.bossName}`);
+      }
+    }
   }
 
   /**
-   * Intenta interactuar con un NPC si el jugador está cerca.
-   * En Fase 5 esto disparará DialogueSystem.
+   * Maneja el disparo de proyectiles (Fase 9).
    */
+  _handleSkill() {
+    if (!this._player || !this._player.isAlive) return;
+
+    // Solo Lynfa dispara en esta versión
+    if (this._player.id !== 'lynfa') {
+      console.log('[WorldScene] El guardián actual no tiene habilidad de disparo.');
+      return;
+    }
+
+    // Intentar gastar 10 de Energía
+    if (this._player.useEnergy(10)) {
+      const damage = 25; // Daño fijo acordado (Habilidad 1 y 2)
+      
+      // Si el jugador está presionando alguna flecha, es una Ráfaga, si no, es una Trampa
+      const isAiming = this._cursors.up.isDown || this._cursors.down.isDown || this._cursors.left.isDown || this._cursors.right.isDown;
+      const isTrap = !isAiming;
+      
+      const projColor = isTrap ? 0x2ECC71 : 0x3498DB; // Verde para trampa, azul para ráfaga
+
+      const proj = new Projectile(
+        this,
+        this._player.sprite.x,
+        this._player.sprite.y,
+        this._player.direction,
+        damage,
+        projColor,
+        isTrap
+      );
+
+      this._projectiles.push(proj);
+      this._projectilesGroup.add(proj.sprite);
+      proj.fire(); // Disparar después de agregarlo al grupo
+
+      // Añadir overlappers con los enemigos existentes (y boss)
+      for (const enemy of this._enemies) {
+        this.physics.add.overlap(proj.sprite, enemy.sprite, (pSprite, eSprite) => {
+          if (eSprite.enemyRef && eSprite.enemyRef.isAlive) {
+            eSprite.enemyRef.takeDamage(pSprite.projectileRef.damage, this._player.sprite.x, this._player.sprite.y);
+          }
+          if (pSprite.projectileRef) pSprite.projectileRef.destroy();
+        });
+      }
+      
+      if (this._boss && this._boss.isAlive) {
+        this.physics.add.overlap(proj.sprite, this._boss.sprite, (pSprite, bSprite) => {
+          this._boss.takeDamage(pSprite.projectileRef.damage, this._player.sprite.x, this._player.sprite.y);
+          if (pSprite.projectileRef) pSprite.projectileRef.destroy();
+        });
+      }
+
+      const skillName = isTrap ? 'Trampa de Anticuerpos' : 'Ráfaga de Anticuerpos';
+      console.log(`[WorldScene] ¡Lynfa usó ${skillName}! (EN: ${this._player.energy})`);
+    } else {
+      console.log('[WorldScene] Energía insuficiente para usar la habilidad.');
+    }
+  }
+
   _tryInteract() {
+    const INTERACT_RANGE = 64; // TILE_SIZE * 2
+
+    // 1. Interacción con la Puerta del Jefe
+    if (this._door) {
+      const distToDoor = Phaser.Math.Distance.Between(
+        this._player.sprite.x, this._player.sprite.y,
+        this._door.x, this._door.y
+      );
+      if (distToDoor <= INTERACT_RANGE) {
+        this._enterBossRoom();
+        return; // Salir para no interactuar con el NPC si estuviera cerca
+      }
+    }
+
+    // 2. Interacción con NPCs
     if (!this._npc) return;
 
     const dist = Phaser.Math.Distance.Between(
@@ -426,45 +646,27 @@ class WorldScene extends Phaser.Scene {
       this._npc.x, this._npc.y
     );
 
-    const INTERACT_RANGE = TILE_SIZE * 2;
 
     if (dist <= INTERACT_RANGE) {
-      console.log('[WorldScene] Interactuando con Centinela Linfático. (Fase 5: diálogo)');
-      // TODO Fase 5: this.scene.launch(SCENE.DIALOGUE, { dialogueId: 'intro_centinela' });
+      console.log('[WorldScene] Dialogando con NPC...');
+      // Pausar el mundo para que el jugador y enemigos no se muevan
+      this.scene.pause();
+
+      let dialogueId = '0001_start';
+      if (this._questSystem.hasCompletedQuest('quest_clean_lymph_node')) {
+        dialogueId = '0001_completed';
+      } else if (this._questSystem.hasQuest('quest_clean_lymph_node')) {
+        dialogueId = '0001_in_progress';
+      }
+
+      // Lanzar escena de diálogo con el ID del NPC correspondiente al estado de la misión
+      this.scene.launch(SCENE.DIALOGUE, { dialogueId });
     } else {
       console.log('[WorldScene] No hay nada cerca para interactuar.');
     }
   }
 
-  /**
-   * Instrucciones de controles temporales, fijas en la cámara.
-   * Se eliminan cuando el sistema de diálogo esté listo.
-   */
-  _showInstructions() {
-    const lines = [
-      'CONTROLES',
-      '──────────────',
-      '← → ↑ ↓  Mover',
-      'Shift      Correr',
-      'Z          Atacar',
-      'X          Habilidad (F4)',
-      'E          Interactuar',
-      'Esc        Pausa (pronto)',
-    ];
 
-    this.add.rectangle(62, 88, 120, 72, 0x000000, 0.65)
-      .setScrollFactor(0)
-      .setDepth(DEPTH_EFFECTS + 10);
-
-    lines.forEach((line, i) => {
-      const color = i === 0 ? '#9B59B6' : '#BDC3C7';
-      this.add.text(8, 58 + i * 9, line, {
-        fontFamily: 'monospace',
-        fontSize:   '5px',
-        color,
-      }).setScrollFactor(0).setDepth(DEPTH_EFFECTS + 11);
-    });
-  }
 }
 
 export default WorldScene;

@@ -1,28 +1,62 @@
-[
-  {
-    "id": "intro_centinela",
-    "speaker": "Centinela Linfático",
-    "portrait": "npc_centinela",
-    "lines": [
-      "¡Guardiana, al fin llegas!",
-      "El ganglio está detectando señales de infección.",
-      "Derrota a los patógenos y activa el Núcleo de Memoria Inmune.",
-      "Recuerda: los anticuerpos ayudan a reconocer amenazas específicas."
-    ],
-    "onComplete": {
-      "type": "startQuest",
-      "questId": "quest_clean_lymph_node"
+{
+  "0001_start": {
+    "start": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Saludos, Guardiana! Los sensores indican actividad patógena.\nSe han detectado exactamente 3 Virus Menores en este sector.\n\n¿Estás lista para iniciar la purga y eliminarlos a todos?",
+      "choices": [
+        { "label": "Sí, iniciar purga.", "nextNode": "yes_path" },
+        { "label": "Aún no, necesito prepararme.", "nextNode": "no_path" }
+      ]
+    },
+    "yes_path": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Excelente! Destruye a los 3 virus y vuelve conmigo\ncuando hayas terminado.",
+      "action": { "type": "startQuest", "questId": "quest_clean_lymph_node" },
+      "choices": []
+    },
+    "no_path": {
+      "speaker": "Centinela Linfático",
+      "text": "Entendido. No te demores mucho, los virus podrían multiplicarse.",
+      "choices": []
     }
   },
-  {
-    "id": "npc_after_quest",
-    "speaker": "Centinela Linfático",
-    "portrait": "npc_centinela",
-    "lines": [
-      "¡Increíble trabajo, Lynfa!",
-      "El ganglio está despejado. El sistema inmune recuerda estos patógenos.",
-      "Ahora la próxima infección será combatida más rápido."
-    ],
-    "onComplete": null
+  "0001_in_progress": {
+    "start": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Guardiana! ¿Cómo va la cacería de virus?\n¿Ya eliminaste a los 3 objetivos?",
+      "choices": [
+        { "label": "Sí, ya los derroté a todos.", "nextNode": "check_lie" },
+        { "label": "Todavía estoy en eso.", "nextNode": "keep_going" }
+      ]
+    },
+    "keep_going": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Apresúrate! La red inmunitaria cuenta contigo.",
+      "choices": []
+    },
+    "check_lie": {
+      "speaker": "Centinela Linfático",
+      "text": "Iniciando escaneo biométrico del área...",
+      "action": { "type": "checkQuest", "questId": "quest_clean_lymph_node" },
+      "choices": []
+    },
+    "lie_detected": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Negativo, Guardiana! Mis escáneres indican que\naún quedan virus menores con vida en el sector.\n\nTermina el trabajo antes de reportar la victoria.",
+      "choices": []
+    },
+    "truth_confirmed": {
+      "speaker": "Centinela Linfático",
+      "text": "¡Afirmativo! No quedan rastros virales en el cuadrante.\n¡Excelente trabajo, Lynfa! Has salvado este ganglio.",
+      "action": { "type": "completeQuest", "questId": "quest_clean_lymph_node" },
+      "choices": []
+    }
+  },
+  "0001_completed": {
+    "start": {
+      "speaker": "Centinela Linfático",
+      "text": "El sector está asegurado gracias a ti.\nLa red inmunitaria descansa en paz por ahora.",
+      "choices": []
+    }
   }
-]
+}

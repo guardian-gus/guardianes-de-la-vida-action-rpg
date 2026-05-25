@@ -15,9 +15,10 @@
 
 // --- RESOLUCIÓN Y PANTALLA ---
 // La resolución lógica del juego. Se escala al tamaño real de la ventana.
-// 480x270 es 1/4 de 1920x1080, lo que nos da pixeles nítidos a pantalla completa.
-export const GAME_WIDTH  = 480;
-export const GAME_HEIGHT = 270;
+// 1920x1080 permite que la UI y los textos se rendericen en alta resolución,
+// mientras que la cámara del mundo de juego usará zoom para el estilo pixel art.
+export const GAME_WIDTH  = 1920;
+export const GAME_HEIGHT = 1080;
 
 // --- TILES ---
 // Tamaño en píxeles de cada tile del mapa.
@@ -114,8 +115,12 @@ export const EVENTS = {
   PLAYER_XP_CHANGED:     'player-xp-changed',
   PLAYER_LEVEL_UP:       'player-level-up',
   ENEMY_DIED:            'enemy-died',
+  QUEST_STARTED:         'quest-started',
   QUEST_UPDATED:         'quest-updated',
   QUEST_COMPLETED:       'quest-completed',
   DIALOGUE_START:        'dialogue-start',
   DIALOGUE_END:          'dialogue-end',
+  BOSS_SPAWNED:          'boss-spawned',
+  BOSS_HP_CHANGED:       'boss-hp-changed',
+  BOSS_DIED:             'boss-died',
 };

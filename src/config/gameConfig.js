@@ -52,10 +52,11 @@ const gameConfig = {
 
   // Renderizado pixel art: desactivar suavizado para que los píxeles
   // se vean nítidos y no difuminados.
+  // resolution: 2 renderiza texturas internas al doble de tamaño,
+  // produciendo texto legible incluso escalado en pantallas grandes.
   render: {
     pixelArt: true,               // Activar modo pixel art
     antialias: false,             // Sin suavizado de bordes
-    antialiasGL: false,           // Sin suavizado OpenGL
   },
 
   // Sistema de física.
