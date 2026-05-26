@@ -22,8 +22,13 @@ class Boss extends Enemy {
     this._color = parseInt(data.color, 16) || 0xE67E22;
     this._hasDrawn = false; // Reset flag to redraw with Boss color on next frame
     
-    // Ocultar la barra genérica pequeña, el jefe tiene una barra global en el HUD
-    // (O la mantenemos, pero el jugador quería su propia barra. Por ahora la dejamos activa por la clase Enemy).
+    // Ajustar el cuerpo físico del jefe para ser un núcleo central (Core Hitbox) de 48x48
+    // Esto previene que los proyectiles colisionen prematuramente en la silueta externa invisible del sprite de 96x96,
+    // logrando que crucen visualmente y colisionen contra el núcleo, de manera que la animación/impacto sea perfectamente visible.
+    if (this.sprite && this.sprite.body) {
+      this.sprite.body.setSize(48, 48);
+      this.sprite.body.setOffset(24, 24); // Centrado exacto: (96 - 48)/2 = 24
+    }
     
     // Emitir evento de que apareció
     this._scene.events.emit(EVENTS.BOSS_SPAWNED, {

@@ -715,10 +715,25 @@ class WorldScene extends Phaser.Scene {
       
       const projColor = isTrap ? 0x2ECC71 : 0x3498DB; // Verde para trampa, azul para ráfaga
 
+      // Si no es una trampa, adelantamos el punto de spawn del proyectil para que salga por el frente
+      // del personaje (18px de offset en la dirección que mira) en lugar del centro absoluto de su cuerpo.
+      let spawnX = this._player.sprite.x;
+      let spawnY = this._player.sprite.y;
+      
+      if (!isTrap) {
+        const offset = 18;
+        switch (this._player.direction) {
+          case 'up':    spawnY -= offset; break;
+          case 'down':  spawnY += offset; break;
+          case 'left':  spawnX -= offset; break;
+          case 'right': spawnX += offset; break;
+        }
+      }
+
       const proj = new Projectile(
         this,
-        this._player.sprite.x,
-        this._player.sprite.y,
+        spawnX,
+        spawnY,
         this._player.direction,
         damage,
         projColor,
