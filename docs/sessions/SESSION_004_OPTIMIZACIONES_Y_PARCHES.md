@@ -18,9 +18,9 @@
 
 ## Lo que se hizo
 
-### 1. Resolución de Bugs Técnicos (7/7)
+### 1. Resolución de Bugs Técnicos (8/8)
 
-Se aplicaron parches correctivos a los 7 bugs reportados en la auditoría técnica anterior:
+Se aplicaron parches correctivos a los 8 bugs reportados en la auditoría y pruebas en caliente:
 
 *   **BUG-01 (UIScene Memory Leak):** Se almacenaron referencias estrictas a funciones callback (`_onHpChanged`, etc.) en el HUD y se desuscribieron explícitamente mediante `off(EVENT, callback, this)` en el evento `shutdown`, solucionando la fuga de memoria y caídas al reiniciar partida.
 *   **BUG-02 (XP Sync):** Se eliminó el cálculo redundante de XP del HUD; ahora lee el valor `toNext` emitido dinámicamente desde el jugador.
@@ -29,6 +29,7 @@ Se aplicaron parches correctivos a los 7 bugs reportados en la auditoría técni
 *   **BUG-05 (Projectile Glitch):** Se posicionó el gráfico del proyectil en `(x, y)` en el mismo frame de su creación, corrigiendo su parpadeo inicial en la esquina superior izquierda `(0, 0)`.
 *   **BUG-06 (Firma de Update):** Se normalizó la firma `update(time, delta)` de `Player.js`, `Enemy.js` y `Boss.js` bajo un patrón polimórfico tolerante que acepta firmas de Phaser y llamadas simples de ciclos legados sin romper sus velocidades de cálculo.
 *   **BUG-07 (XP Width):** Se reemplazaron dimensiones numéricas hardcodeadas en la barra de experiencia por la constante global `HUD_BAR_WIDTH`.
+*   **BUG-08 (Paredes Traspasables por Empuje / Static Body Scale):** Al escalar paredes estáticas creadas con textura nula (`null`) de 32x32 a 48x48 mediante `setDisplaySize()`, el motor de físicas de Phaser no redimensionaba automáticamente el cuerpo físico estático, dejando un espacio hueco de 16px sin colisión real. Esto permitía a los enemigos empujar al jugador a través de la pared. Se solucionó llamando explícitamente a `wall.body.updateFromGameObject()` y `npc.body.updateFromGameObject()` después del escalado para sincronizar de forma exacta las hitboxes físicas con las visuales.
 
 ---
 
