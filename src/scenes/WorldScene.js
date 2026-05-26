@@ -241,6 +241,7 @@ class WorldScene extends Phaser.Scene {
           // Pared: añadir al grupo de física estática
           const wall = this._walls.create(x, y, null);
           wall.setDisplaySize(TILE_SIZE, TILE_SIZE);
+          wall.body.updateFromGameObject(); // CRÍTICO: Recalcular la hitbox del cuerpo estático para que mida 48x48 en vez de 32x32
 
           // Visual: capa de pared + borde más oscuro
           this.add.rectangle(x, y, TILE_SIZE, TILE_SIZE, COLOR_WALL).setDepth(DEPTH_FLOOR);
@@ -313,6 +314,7 @@ class WorldScene extends Phaser.Scene {
     this._npcGroup = this.physics.add.staticGroup();
     const npc = this._npcGroup.create(npcX, npcY, null);
     npc.setDisplaySize(20, 28);
+    npc.body.updateFromGameObject(); // CRÍTICO: Recalcular la hitbox del NPC estático para que coincida con sus nuevas dimensiones de 20x28
     npc.id = 'centinela_linfatico';
 
     // Visual placeholder: rectángulo azul con "cara"
