@@ -15,7 +15,6 @@ class DialogueScene extends Phaser.Scene {
     this._dialogueId = null;
     this._currentNodeId = null;
     this._selectedChoiceIndex = 0;
-    this._uiElements = [];
   }
 
   init(data) {
@@ -34,8 +33,39 @@ class DialogueScene extends Phaser.Scene {
       0x0F0B1A, 0.95
     ).setDepth(DEPTH_UI).setScrollFactor(0).setStrokeStyle(4, 0x9B59B6);
 
+    // Inicializar objetos de texto reusables (OPT-05)
+    this._nameText = this.add.text(60, GAME_HEIGHT - 310, '', {
+      fontFamily: 'monospace',
+      fontSize: '28px',
+      color: '#AED6F1',
+      fontStyle: 'bold'
+    }).setDepth(DEPTH_UI);
+
+    this._mainText = this.add.text(60, GAME_HEIGHT - 270, '', {
+      fontFamily: 'monospace',
+      fontSize: '24px',
+      color: '#ECF0F1',
+      wordWrap: { width: GAME_WIDTH - 120 }
+    }).setDepth(DEPTH_UI);
+
+    this._continueText = this.add.text(GAME_WIDTH - 60, GAME_HEIGHT - 40, '[W] o [Enter] para continuar', {
+      fontFamily: 'monospace',
+      fontSize: '20px',
+      color: '#7F8C8D',
+    }).setOrigin(1, 1).setDepth(DEPTH_UI);
+
+    // Crear un pool de 4 textos de opciones
+    this._choiceTexts = [];
+    for (let i = 0; i < 4; i++) {
+      const txt = this.add.text(80, 0, '', {
+        fontFamily: 'monospace',
+        fontSize: '22px',
+      }).setDepth(DEPTH_UI);
+      txt.setVisible(false);
+      this._choiceTexts.push(txt);
+    }
+
     // Controles de teclado mediante eventos directos de la escena
-    // Esto evita conflictos con las teclas creadas en WorldScene
     this.input.keyboard.on('keydown-UP', () => this._changeSelection(-1));
     this.input.keyboard.on('keydown-DOWN', () => this._changeSelection(1));
     this.input.keyboard.on('keydown-W', () => this._handleAction());
@@ -45,10 +75,6 @@ class DialogueScene extends Phaser.Scene {
   }
 
   _renderNode() {
-    // Limpiar elementos anteriores
-    this._uiElements.forEach(el => el.destroy());
-    this._uiElements = [];
-
     const dialoguesDB = this.cache.json.get('dialogues');
     const dialogueData = dialoguesDB ? dialoguesDB[this._dialogueId] : null;
 
@@ -59,49 +85,34 @@ class DialogueScene extends Phaser.Scene {
 
     const node = dialogueData[this._currentNodeId];
 
-    // Nombre del hablante
-    const nameText = this.add.text(60, GAME_HEIGHT - 310, node.speaker, {
-      fontFamily: 'monospace',
-      fontSize: '28px',
-      color: '#AED6F1',
-      fontStyle: 'bold'
-    }).setDepth(DEPTH_UI);
-    this._uiElements.push(nameText);
+    // Actualizar nombre y texto principal
+    this._nameText.setText(node.speaker);
+    this._mainText.setText(node.text);
 
-    // Texto principal
-    const mainText = this.add.text(60, GAME_HEIGHT - 270, node.text, {
-      fontFamily: 'monospace',
-      fontSize: '24px',
-      color: '#ECF0F1',
-      wordWrap: { width: GAME_WIDTH - 120 }
-    }).setDepth(DEPTH_UI);
-    this._uiElements.push(mainText);
+    // Ocultar todas las opciones e indicador de continuar
+    this._choiceTexts.forEach(txt => txt.setVisible(false));
+    this._continueText.setVisible(false);
 
     // Renderizar opciones si hay, de lo contrario mensaje para avanzar
     if (node.choices && node.choices.length > 0) {
       // Posicionar opciones dinámicamente debajo del texto principal
-      const choicesStartY = mainText.y + mainText.height + 24;
+      const choicesStartY = this._mainText.y + this._mainText.height + 24;
 
       node.choices.forEach((choice, index) => {
-        const isSelected = index === this._selectedChoiceIndex;
-        const prefix = isSelected ? '▶ ' : '  ';
-        const color = isSelected ? '#F39C12' : '#BDC3C7';
-        
-        const choiceText = this.add.text(80, choicesStartY + (index * 36), prefix + choice.label, {
-          fontFamily: 'monospace',
-          fontSize: '22px',
-          color: color,
-        }).setDepth(DEPTH_UI);
-        
-        this._uiElements.push(choiceText);
+        if (index < this._choiceTexts.length) {
+          const txt = this._choiceTexts[index];
+          const isSelected = index === this._selectedChoiceIndex;
+          const prefix = isSelected ? '▶ ' : '  ';
+          const color = isSelected ? '#F39C12' : '#BDC3C7';
+          
+          txt.setPosition(80, choicesStartY + (index * 36));
+          txt.setText(prefix + choice.label);
+          txt.setColor(color);
+          txt.setVisible(true);
+        }
       });
     } else {
-      const continueText = this.add.text(GAME_WIDTH - 60, GAME_HEIGHT - 40, '[W] o [Enter] para continuar', {
-        fontFamily: 'monospace',
-        fontSize: '20px',
-        color: '#7F8C8D',
-      }).setOrigin(1, 1).setDepth(DEPTH_UI);
-      this._uiElements.push(continueText);
+      this._continueText.setVisible(true);
     }
   }
 
