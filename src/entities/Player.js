@@ -81,6 +81,7 @@ class Player {
     this.sprite.body.setSize(20, 28);
     this.sprite.setCollideWorldBounds(true);
     this.sprite.setDepth(DEPTH_PLAYER);
+    this.sprite.body.setPushable(false); // CRÍTICO: Evita el bug del sandwich. Los enemigos no pueden empujar físicamente al jugador contra las paredes ni atravesarlas.
 
     // Referencia inversa para recuperar el Player desde el sprite
     // (útil en callbacks de colisión)

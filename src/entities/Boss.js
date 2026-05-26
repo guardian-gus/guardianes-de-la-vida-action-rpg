@@ -40,6 +40,7 @@ class Boss extends Enemy {
 
       this.sprite.body.setSize(textureWidth, textureHeight);
       this.sprite.body.setOffset(offsetX, offsetY);
+      this.sprite.body.setPushable(false); // Jefe inmóvil frente a empujes del jugador
     }
     
     // Emitir evento de que apareció
