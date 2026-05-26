@@ -85,6 +85,22 @@ Posteriormente, en `_setupCollisions()`, se eliminó la duplicidad y sobrescritu
 
 ---
 
+### 4. Sólidos en Entidades (Evitar Sobreposiciones) y Hitbox de Contacto Exacto del Boss
+
+#### Mitigación de Sobreposición de Entidades (Bumping)
+*   **Problema:** Los enemigos y el jugador utilizaban únicamente zonas físicas de solapamiento (`overlap`). Esto permitía que los enemigos caminaran de forma no natural sobre el jugador y se apilaran unos encima de otros en un solo píxel, atravesándose constantemente. Los NPCs estáticos también eran completamente traspasables.
+*   **Solución Aplicada:**
+    1.  Se cambió el `overlap` de daño por contacto de enemigos contra el jugador por un `collider` físico sólido: `this.physics.add.collider(this._player.sprite, this._enemiesGroup, callback)`. Esto hace que el motor físico empuje y separe de forma natural a los personajes al hacer contacto, previniendo que caminen por encima del jugador.
+    2.  Se añadió un colisionador entre los propios enemigos (`this.physics.add.collider(this._enemiesGroup, this._enemiesGroup)`). Ahora los enemigos se empujan y distribuyen de manera fluida y táctica al rodear al jugador, evitando apilarse en el mismo punto.
+    3.  Se registraron colisionadores sólidos contra los NPCs estáticos (`this._npcGroup`), bloqueando el paso de forma real tanto para el jugador como para los virus.
+
+#### Hitbox de Contacto al Primer Toque del Boss
+*   **Problema:** El proyectil debía explotar exactamente al tener contacto con la silueta visual exterior del Boss. Al haberse reducido el núcleo del Boss a 48x48 (para pruebas previas), el proyectil penetraba el sprite del jefe antes de hacer daño, lo que no coincidía con su silueta.
+*   **Solución Aplicada:** Se configuró el cuerpo físico del jefe a un tamaño de mundo exacto de `96x96` píxeles, logrando un alineamiento del 100% perfecto con su silueta visual de color naranja. Dado que Phaser opera las físicas a escala local de la textura base (`32x32`), se compensó aplicando un tamaño local exacto de `32x32` y offset `0` en `Boss.js`.
+*   **Resultado:** Los proyectiles viajan y colisionan de forma instantánea al tocar el primer píxel externo de la caja naranja del VIH, detonando en el instante preciso de contacto visual y aplicando el daño al instante.
+
+---
+
 ## Archivos modificados en esta sesión
 
 | Archivo | Tipo | Descripción |
