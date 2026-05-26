@@ -23,11 +23,24 @@ class Boss extends Enemy {
     this._hasDrawn = false; // Reset flag to redraw with Boss color on next frame
     
     // Ajustar el cuerpo físico del jefe para ser un núcleo central (Core Hitbox) de 48x48
-    // Esto previene que los proyectiles colisionen prematuramente en la silueta externa invisible del sprite de 96x96,
-    // logrando que crucen visualmente y colisionen contra el núcleo, de manera que la animación/impacto sea perfectamente visible.
+    // En Phaser 3, body.setSize() opera en el espacio de la textura original. Dado que el sprite de 96x96
+    // tiene una textura base de 32x32 (escala 3x), debemos compensar la escala dividiendo las dimensiones
+    // deseadas por la escala del sprite para obtener un cuerpo físico exacto de 48x48 y centrado.
     if (this.sprite && this.sprite.body) {
-      this.sprite.body.setSize(48, 48);
-      this.sprite.body.setOffset(24, 24); // Centrado exacto: (96 - 48)/2 = 24
+      const scaleX = this.sprite.scaleX || 1;
+      const scaleY = this.sprite.scaleY || 1;
+
+      const worldTargetWidth = 48;
+      const worldTargetHeight = 48;
+
+      const textureWidth = worldTargetWidth / scaleX;   // 48 / 3 = 16
+      const textureHeight = worldTargetHeight / scaleY; // 48 / 3 = 16
+
+      const offsetX = (this.sprite.width - textureWidth) / 2;   // (32 - 16)/2 = 8
+      const offsetY = (this.sprite.height - textureHeight) / 2; // (32 - 16)/2 = 8
+
+      this.sprite.body.setSize(textureWidth, textureHeight);
+      this.sprite.body.setOffset(offsetX, offsetY);
     }
     
     // Emitir evento de que apareció
