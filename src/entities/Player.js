@@ -89,6 +89,12 @@ class Player {
     // --- GRÁFICO PLACEHOLDER ---
     this._graphic = scene.add.graphics();
     this._color   = placeholderColor;
+    
+    // Cache de estado para evitar redibujados redundantes 60 veces por segundo (OPT-01)
+    this._lastState     = null;
+    this._lastDirection = null;
+    this._lastAlpha     = null;
+
     this._drawGraphic(x, y);
 
     // --- ETIQUETA DE NOMBRE (debug, se elimina cuando haya sprites) ---
@@ -167,14 +173,22 @@ class Player {
   /**
    * Actualiza el gráfico placeholder y los temporizadores.
    * Se llama en cada frame desde WorldScene.update().
-   * @param {number} delta - Ms desde el último frame.
+   * Soporta firma estándar (time, delta) o firma simplificada (delta).
+   * @param {number} timeOrDelta - Ms desde el último frame o tiempo acumulado.
+   * @param {number} [delta] - Ms desde el último frame.
    */
-  update(delta) {
+  update(timeOrDelta, delta) {
     if (!this.isAlive) return;
 
+    // Normalizar argumentos para soportar update(delta) y update(time, delta)
+    let actualDelta = timeOrDelta;
+    if (delta !== undefined) {
+      actualDelta = delta;
+    }
+
     // Reducir temporizadores activos
-    if (this._invulnTimer > 0) this._invulnTimer -= delta;
-    if (this._attackCooldown > 0) this._attackCooldown -= delta;
+    if (this._invulnTimer > 0) this._invulnTimer -= actualDelta;
+    if (this._attackCooldown > 0) this._attackCooldown -= actualDelta;
 
     // Salir del estado HIT cuando termina la invulnerabilidad
     if (this.state === PLAYER_STATE.HIT && this._invulnTimer <= 0) {
@@ -185,7 +199,7 @@ class Player {
     
     // Sistema de regeneración de energía (Fase 9)
     if (this.state === PLAYER_STATE.IDLE) {
-      this._idleTimer += delta;
+      this._idleTimer += actualDelta;
       if (this._idleTimer >= 2000) {
         this._idleTimer = 0;
         if (this.energy < this.maxEnergy) {
@@ -356,50 +370,61 @@ class Player {
   // ============================================================
 
   /**
-   * Dibuja el placeholder visual del jugador en (x, y).
-   * Cambia de apariencia según el estado actual.
+   * Dibuja el placeholder visual del jugador.
+   * OPT-01: Redibuja solo cuando cambia de estado, dirección o visibilidad.
+   * En frames normales, solo actualiza la posición del gráfico con setPosition().
    */
   _drawGraphic(x, y) {
-    this._graphic.clear();
-
-    // Cuerpo
     const alpha = (this.state === PLAYER_STATE.HIT) ? 0.5 : 1.0;
-    this._graphic.fillStyle(this._color, alpha);
-    this._graphic.fillRect(x - 10, y - 14, 20, 28);
+    const isDirty = (this.state !== this._lastState || this.direction !== this._lastDirection || alpha !== this._lastAlpha);
 
-    // Cara (círculo blanco)
-    this._graphic.fillStyle(0xFFFFFF, 0.9 * alpha);
-    this._graphic.fillCircle(x, y - 6, 5);
+    if (isDirty) {
+      this._lastState     = this.state;
+      this._lastDirection = this.direction;
+      this._lastAlpha     = alpha;
 
-    // Indicador de dirección (puntito)
-    this._graphic.fillStyle(0xFFE0FF, alpha);
-    switch (this.direction) {
-      case DIRECTION.UP:
-        this._graphic.fillRect(x - 2, y - 14, 4, 5); break;
-      case DIRECTION.DOWN:
-        this._graphic.fillRect(x - 2, y + 10, 4, 5); break;
-      case DIRECTION.LEFT:
-        this._graphic.fillRect(x - 12, y - 2, 5, 4); break;
-      case DIRECTION.RIGHT:
-        this._graphic.fillRect(x + 7, y - 2, 5, 4); break;
-    }
+      this._graphic.clear();
 
-    // Si está en estado ATTACK: mostrar pequeña hitbox de ataque
-    if (this.state === PLAYER_STATE.ATTACK) {
-      this._graphic.fillStyle(0xFFFF00, 0.6);
+      // Cuerpo (dibujado relativo a 0, 0)
+      this._graphic.fillStyle(this._color, alpha);
+      this._graphic.fillRect(-10, -14, 20, 28);
+
+      // Cara (círculo blanco)
+      this._graphic.fillStyle(0xFFFFFF, 0.9 * alpha);
+      this._graphic.fillCircle(0, -6, 5);
+
+      // Indicador de dirección (puntito)
+      this._graphic.fillStyle(0xFFE0FF, alpha);
       switch (this.direction) {
         case DIRECTION.UP:
-          this._graphic.fillRect(x - 10, y - 28, 20, 12); break;
+          this._graphic.fillRect(-2, -14, 4, 5); break;
         case DIRECTION.DOWN:
-          this._graphic.fillRect(x - 10, y + 14, 20, 12); break;
+          this._graphic.fillRect(-2, 10, 4, 5); break;
         case DIRECTION.LEFT:
-          this._graphic.fillRect(x - 22, y - 10, 12, 20); break;
+          this._graphic.fillRect(-12, -2, 5, 4); break;
         case DIRECTION.RIGHT:
-          this._graphic.fillRect(x + 10, y - 10, 12, 20); break;
+          this._graphic.fillRect(7, -2, 5, 4); break;
       }
+
+      // Si está en estado ATTACK: mostrar pequeña hitbox de ataque
+      if (this.state === PLAYER_STATE.ATTACK) {
+        this._graphic.fillStyle(0xFFFF00, 0.6);
+        switch (this.direction) {
+          case DIRECTION.UP:
+            this._graphic.fillRect(-10, -28, 20, 12); break;
+          case DIRECTION.DOWN:
+            this._graphic.fillRect(-10, 14, 20, 12); break;
+          case DIRECTION.LEFT:
+            this._graphic.fillRect(-22, -10, 12, 20); break;
+          case DIRECTION.RIGHT:
+            this._graphic.fillRect(10, -10, 12, 20); break;
+        }
+      }
+
+      this._graphic.setDepth(DEPTH_PLAYER);
     }
 
-    this._graphic.setDepth(DEPTH_PLAYER);
+    this._graphic.setPosition(x, y);
   }
 
   /**

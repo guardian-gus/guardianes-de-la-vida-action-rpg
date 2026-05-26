@@ -80,6 +80,7 @@ class Enemy {
     // El color varía levemente por tipo de enemigo
     this._color = this._getColorByType();
     this._graphic = scene.add.graphics();
+    this._hasDrawn = false; // OPT-01: Cache flag for draw calls saving
     this._drawGraphic(x, y);
 
     // --- BARRA DE VIDA (pequeña, encima del enemigo) ---
@@ -114,17 +115,24 @@ class Enemy {
 
   /**
    * Actualiza la IA y el gráfico del enemigo cada frame.
-   * @param {number} delta - Ms desde el último frame.
+   * Soporta firma estándar (time, delta) o firma simplificada (delta).
+   * @param {number} timeOrDelta - Ms desde el último frame o tiempo acumulado.
+   * @param {number} [delta] - Ms desde el último frame.
    */
-  update(delta) {
+  update(timeOrDelta, delta) {
     if (!this.isAlive) return;
+
+    // Normalizar argumentos
+    let actualDelta = timeOrDelta;
+    if (delta !== undefined) {
+      actualDelta = delta;
+    }
 
     // Actualizar temporizador de knockback
     if (this._knockbackTimer > 0) {
-      this._knockbackTimer -= delta;
+      this._knockbackTimer -= actualDelta;
       if (this._knockbackTimer <= 0) {
         this._isKnockedBack = false;
-        // Limpiar el knockback retomando el comportamiento normal
       }
     }
 
@@ -310,14 +318,19 @@ class Enemy {
 
   /**
    * Dibuja un cuadrado del tamaño dinámico para representar al enemigo.
+   * OPT-01: Dibuja una sola vez relativo a (0, 0), y solo actualiza posición en frames posteriores.
    */
   _drawGraphic(x, y) {
-    this._graphic.clear();
-    this._graphic.fillStyle(this._color, 1);
+    if (!this._hasDrawn) {
+      this._hasDrawn = true;
+      this._graphic.clear();
+      this._graphic.fillStyle(this._color, 1);
 
-    const hw = this.width / 2;
-    const hh = this.height / 2;
-    this._graphic.fillRect(x - hw, y - hh, this.width, this.height);
+      const hw = this.width / 2;
+      const hh = this.height / 2;
+      this._graphic.fillRect(-hw, -hh, this.width, this.height);
+    }
+    this._graphic.setPosition(x, y);
   }
 
   /**

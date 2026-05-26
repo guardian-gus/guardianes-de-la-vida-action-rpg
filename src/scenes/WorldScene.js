@@ -32,8 +32,11 @@ import {
   DEPTH_ENEMIES,
   DEPTH_FLOOR,
   DEPTH_EFFECTS,
+  DEPTH_OBJECTS,
   CAMERA_LERP,
   EVENTS,
+  PLAYER_STATE,
+  DIRECTION,
 } from '../config/constants.js';
 
 // --- MAPA PLACEHOLDER ---
@@ -287,6 +290,9 @@ class WorldScene extends Phaser.Scene {
       enemy.setTarget(this._player);
 
       this._enemies.push(enemy);
+      if (this._enemiesGroup) {
+        this._enemiesGroup.add(enemy.sprite);
+      }
     });
 
     console.log(`[WorldScene] ${this._enemies.length} enemigos creados.`);
@@ -457,7 +463,6 @@ class WorldScene extends Phaser.Scene {
   _applyMobileMovement() {
     if (!this._player.isAlive) return;
 
-    const { PLAYER_STATE, DIRECTION } = this._getImportedEnums();
     if (
       this._player.state === PLAYER_STATE.ATTACK ||
       this._player.state === PLAYER_STATE.HIT
@@ -473,28 +478,15 @@ class WorldScene extends Phaser.Scene {
 
     // Actualizar dirección del jugador según el eje dominante
     if (Math.abs(this._mobileVx) > Math.abs(this._mobileVy)) {
-      this._player.direction = this._mobileVx > 0 ? 'right' : 'left';
+      this._player.direction = this._mobileVx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
     } else {
-      this._player.direction = this._mobileVy > 0 ? 'down' : 'up';
+      this._player.direction = this._mobileVy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
 
     // Actualizar estado
-    if (this._player.state !== 'hit' && this._player.state !== 'defeated') {
-      this._player.state = this._mobileRun ? 'run' : 'walk';
+    if (this._player.state !== PLAYER_STATE.HIT && this._player.state !== PLAYER_STATE.DEFEATED) {
+      this._player.state = this._mobileRun ? PLAYER_STATE.RUN : PLAYER_STATE.WALK;
     }
-  }
-
-  /**
-   * Helper que devuelve enums importados sin re-importar el módulo.
-   * Se usan las constantes de string directamente para evitar
-   * una dependencia circular o import dinámico.
-   * @returns {{ PLAYER_STATE: Object, DIRECTION: Object }}
-   */
-  _getImportedEnums() {
-    return {
-      PLAYER_STATE: { ATTACK: 'attack', HIT: 'hit', DEFEATED: 'defeated' },
-      DIRECTION:    { UP: 'up', DOWN: 'down', LEFT: 'left', RIGHT: 'right' },
-    };
   }
 
   /**
@@ -502,37 +494,48 @@ class WorldScene extends Phaser.Scene {
    * Jugador ↔ Paredes, Enemigos ↔ Paredes, Enemigos ↔ Jugador.
    */
   _setupCollisions() {
+    // OPT-02: Inicializar grupos físicos globales para enemigos y proyectiles
+    this._enemiesGroup = this.physics.add.group();
+    this._projectilesGroup = this.physics.add.group();
+
     // Jugador no puede atravesar paredes
     this.physics.add.collider(this._player.sprite, this._walls);
 
-    // Enemigos no pueden atravesar paredes
-    for (const enemy of this._enemies) {
-      this.physics.add.collider(enemy.sprite, this._walls);
-    }
-
-    // Enemigos hacen daño por contacto al jugador
-    for (const enemy of this._enemies) {
-      this.physics.add.overlap(
-        this._player.sprite,
-        enemy.sprite,
-        (_playerSprite, enemySprite) => {
-          // Solo hacer daño si el enemigo tiene contactDamage activo
-          if (enemySprite.enemyRef && enemySprite.enemyRef.contactDamage) {
-            this._player.takeDamage(enemySprite.enemyRef.attack, enemySprite.enemyRef);
-          }
-        }
-      );
-    }
-    
-    // Configuración global de colisiones para proyectiles (Fase 9)
-    this._projectilesGroup = this.physics.add.group();
-    
-    // Proyectiles chocan con la pared y se destruyen (solo las ráfagas)
+    // Enemigos y proyectiles no pueden atravesar paredes (registrado globalmente una vez)
+    this.physics.add.collider(this._enemiesGroup, this._walls);
     this.physics.add.collider(this._projectilesGroup, this._walls, (projSprite) => {
       if (projSprite.projectileRef && !projSprite.projectileRef.isTrap) {
         projSprite.projectileRef.destroy();
       }
     });
+
+    // Enemigos hacen daño por contacto al jugador
+    this.physics.add.overlap(
+      this._player.sprite,
+      this._enemiesGroup,
+      (_playerSprite, enemySprite) => {
+        // Solo hacer daño si el enemigo tiene contactDamage activo y está vivo
+        if (enemySprite.enemyRef && enemySprite.enemyRef.isAlive && enemySprite.enemyRef.contactDamage) {
+          this._player.takeDamage(enemySprite.enemyRef.attack, enemySprite.enemyRef);
+        }
+      }
+    );
+
+    // Proyectiles hacen daño a enemigos (registrado globalmente una vez)
+    this.physics.add.overlap(
+      this._projectilesGroup,
+      this._enemiesGroup,
+      (projSprite, enemySprite) => {
+        if (enemySprite.enemyRef && enemySprite.enemyRef.isAlive && projSprite.projectileRef) {
+          enemySprite.enemyRef.takeDamage(
+            projSprite.projectileRef.damage,
+            this._player.sprite.x,
+            this._player.sprite.y
+          );
+          projSprite.projectileRef.destroy();
+        }
+      }
+    );
   }
 
   /**
@@ -605,8 +608,10 @@ class WorldScene extends Phaser.Scene {
     this._boss = new Boss(this, data, spawnX, spawnY);
     this._boss.setTarget(this._player);
     
-    // Configurar colisiones explícitas para el Jefe contra las paredes
-    this.physics.add.collider(this._boss.sprite, this._walls);
+    // Agregar al grupo de enemigos para heredar colisiones y overlaps
+    if (this._enemiesGroup) {
+      this._enemiesGroup.add(this._boss.sprite);
+    }
     
     // Escuchar cuando el jefe muere para la victoria
     this.events.once(EVENTS.BOSS_DIED, () => {
@@ -629,6 +634,10 @@ class WorldScene extends Phaser.Scene {
     const enemy = new Enemy(this, data, x, y);
     enemy.setTarget(this._player);
     this._enemies.push(enemy);
+
+    if (this._enemiesGroup) {
+      this._enemiesGroup.add(enemy.sprite);
+    }
   }
 
   // ============================================================
@@ -719,23 +728,6 @@ class WorldScene extends Phaser.Scene {
       this._projectiles.push(proj);
       this._projectilesGroup.add(proj.sprite);
       proj.fire(); // Disparar después de agregarlo al grupo
-
-      // Añadir overlappers con los enemigos existentes (y boss)
-      for (const enemy of this._enemies) {
-        this.physics.add.overlap(proj.sprite, enemy.sprite, (pSprite, eSprite) => {
-          if (eSprite.enemyRef && eSprite.enemyRef.isAlive) {
-            eSprite.enemyRef.takeDamage(pSprite.projectileRef.damage, this._player.sprite.x, this._player.sprite.y);
-          }
-          if (pSprite.projectileRef) pSprite.projectileRef.destroy();
-        });
-      }
-      
-      if (this._boss && this._boss.isAlive) {
-        this.physics.add.overlap(proj.sprite, this._boss.sprite, (pSprite, bSprite) => {
-          this._boss.takeDamage(pSprite.projectileRef.damage, this._player.sprite.x, this._player.sprite.y);
-          if (pSprite.projectileRef) pSprite.projectileRef.destroy();
-        });
-      }
 
       const skillName = isTrap ? 'Trampa de Anticuerpos' : 'Ráfaga de Anticuerpos';
       console.log(`[WorldScene] ¡Lynfa usó ${skillName}! (EN: ${this._player.energy})`);

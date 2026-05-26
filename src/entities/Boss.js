@@ -20,6 +20,7 @@ class Boss extends Enemy {
     
     // Cambiamos el color usando la clase padre
     this._color = parseInt(data.color, 16) || 0xE67E22;
+    this._hasDrawn = false; // Reset flag to redraw with Boss color on next frame
     
     // Ocultar la barra genérica pequeña, el jefe tiene una barra global en el HUD
     // (O la mantenemos, pero el jugador quería su propia barra. Por ahora la dejamos activa por la clase Enemy).
@@ -141,6 +142,7 @@ class Boss extends Enemy {
     
     if (newPhase === 3) {
       this._color = 0xC0392B; // Se vuelve rojo furioso
+      this._hasDrawn = false; // Force redraw with new phase 3 color
       this.baseSpeed *= 1.5;
     }
   }
@@ -152,6 +154,7 @@ class Boss extends Enemy {
     this._scene.physics.world.disable(this.sprite);
 
     this._color = 0x555555;
+    this._hasDrawn = false; // Force redraw with defeated gray color
     console.log(`[Boss] ¡${this.name} ha sido derrotado!`);
 
     this._scene.events.emit(EVENTS.BOSS_DIED);

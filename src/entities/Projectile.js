@@ -34,6 +34,7 @@ class Projectile {
     
     // Dibujar gráfico cuadrado 20x20
     this.graphic = scene.add.graphics();
+    this.graphic.setPosition(x, y);
     this.graphic.fillStyle(color, 1);
     this.graphic.fillRect(-10, -10, 20, 20);
     this.graphic.setDepth(DEPTH_EFFECTS);

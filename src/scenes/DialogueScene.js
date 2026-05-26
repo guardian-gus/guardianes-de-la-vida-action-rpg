@@ -107,9 +107,11 @@ class DialogueScene extends Phaser.Scene {
 
   _changeSelection(dir) {
     const dialoguesDB = this.cache.json.get('dialogues');
+    if (!dialoguesDB) return;
     const dialogueData = dialoguesDB[this._dialogueId];
+    if (!dialogueData) return;
     const node = dialogueData[this._currentNodeId];
-    if (!node.choices || node.choices.length === 0) return;
+    if (!node || !node.choices || node.choices.length === 0) return;
 
     this._selectedChoiceIndex += dir;
     if (this._selectedChoiceIndex < 0) {
@@ -123,8 +125,20 @@ class DialogueScene extends Phaser.Scene {
 
   _handleAction() {
     const dialoguesDB = this.cache.json.get('dialogues');
+    if (!dialoguesDB) {
+      this._closeDialogue();
+      return;
+    }
     const dialogueData = dialoguesDB[this._dialogueId];
+    if (!dialogueData) {
+      this._closeDialogue();
+      return;
+    }
     const node = dialogueData[this._currentNodeId];
+    if (!node) {
+      this._closeDialogue();
+      return;
+    }
 
     if (node.choices && node.choices.length > 0) {
       // Avanzar a la rama seleccionada

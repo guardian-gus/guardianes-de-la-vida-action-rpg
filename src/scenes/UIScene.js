@@ -48,6 +48,8 @@ class UIScene extends Phaser.Scene {
     this._bossHpBar = null;
     this._bossHpFill = null;
     this._bossNameText = null;
+    // BUG-01 fix: referencia al tween activo del boss para poder cancelarlo
+    this._bossHpTween = null;
 
     // Valores actuales del jugador
     this._hp       = 120;
@@ -55,6 +57,7 @@ class UIScene extends Phaser.Scene {
     this._energy   = 80;
     this._maxEnergy = 80;
     this._xp       = 0;
+    this._xpToNext = 100; // BUG-02 fix: valor real de XP necesario (sincronizado con Player.js)
     this._level    = 1;
   }
 
@@ -76,62 +79,61 @@ class UIScene extends Phaser.Scene {
     this._showInstructions();
 
     // --- Escuchar eventos de WorldScene ---
-    // Cuando WorldScene cambia HP, energía o XP del jugador,
-    // emite un evento que UIScene recibe aquí para actualizar las barras.
-    worldScene.events.on(EVENTS.PLAYER_HP_CHANGED, (data) => {
+    // IMPORTANTE (BUG-01 fix): guardamos los callbacks en propiedades de instancia
+    // para poder desuscribirnos con el mismo callback en 'shutdown'.
+    // Si se usa off(eventName) sin callback, Phaser elimina TODOS los listeners
+    // de ese evento, incluyendo los de otras escenas — causando memory leaks
+    // y crashes cuando WorldScene se reinicia (ej: al entrar a la sala del boss).
+
+    this._onHpChanged = (data) => {
       this._hp    = data.current;
       this._maxHp = data.max;
       this._updateHPBar();
-    });
-
-    worldScene.events.on(EVENTS.PLAYER_ENERGY_CHANGED, (data) => {
+    };
+    this._onEnergyChanged = (data) => {
       this._energy    = data.current;
       this._maxEnergy = data.max;
       this._updateEnergyBar();
-    });
-
-    worldScene.events.on(EVENTS.PLAYER_XP_CHANGED, (data) => {
-      this._xp    = data.current;
-      this._level = data.level;
+    };
+    // BUG-02 fix: el evento incluye data.toNext desde Player.js
+    // Usamos ese valor en vez de calcular nuestra propia fórmula (level * 100)
+    this._onXpChanged = (data) => {
+      this._xp      = data.current;
+      this._xpToNext = data.toNext; // sincronizado con Player._xpToNext
+      this._level   = data.level;
       this._updateXPBar();
-    });
-
-    worldScene.events.on(EVENTS.QUEST_STARTED, (data) => {
-      this._updateQuestDisplay(data);
-    });
-
-    worldScene.events.on(EVENTS.QUEST_UPDATED, (data) => {
-      this._updateQuestDisplay(data);
-    });
-
-    worldScene.events.on(EVENTS.QUEST_COMPLETED, (data) => {
+    };
+    this._onQuestStarted  = (data) => this._updateQuestDisplay(data);
+    this._onQuestUpdated  = (data) => this._updateQuestDisplay(data);
+    this._onQuestCompleted = () => {
       this._questText.setText('¡Misión completada! Vuelve con el Centinela.');
-      this._questText.setColor('#F39C12'); // Dorado
-    });
+      this._questText.setColor('#F39C12');
+    };
+    this._onBossSpawned   = (data) => this._showBossUI(data);
+    this._onBossHpChanged = (data) => this._updateBossUI(data);
+    this._onBossDied      = () => this._hideBossUI();
 
-    worldScene.events.on(EVENTS.BOSS_SPAWNED, (data) => {
-      this._showBossUI(data);
-    });
+    worldScene.events.on(EVENTS.PLAYER_HP_CHANGED,     this._onHpChanged,       this);
+    worldScene.events.on(EVENTS.PLAYER_ENERGY_CHANGED, this._onEnergyChanged,   this);
+    worldScene.events.on(EVENTS.PLAYER_XP_CHANGED,     this._onXpChanged,       this);
+    worldScene.events.on(EVENTS.QUEST_STARTED,         this._onQuestStarted,    this);
+    worldScene.events.on(EVENTS.QUEST_UPDATED,         this._onQuestUpdated,    this);
+    worldScene.events.on(EVENTS.QUEST_COMPLETED,       this._onQuestCompleted,  this);
+    worldScene.events.on(EVENTS.BOSS_SPAWNED,          this._onBossSpawned,     this);
+    worldScene.events.on(EVENTS.BOSS_HP_CHANGED,       this._onBossHpChanged,   this);
+    worldScene.events.on(EVENTS.BOSS_DIED,             this._onBossDied,        this);
 
-    worldScene.events.on(EVENTS.BOSS_HP_CHANGED, (data) => {
-      this._updateBossUI(data);
-    });
-
-    worldScene.events.on(EVENTS.BOSS_DIED, () => {
-      this._hideBossUI();
-    });
-
-    // Limpiar eventos al apagar la escena (buena práctica para evitar memory leaks)
+    // Cleanup al apagar: pasar el mismo callback para desuscribirse solo del propio listener
     this.events.on('shutdown', () => {
-      worldScene.events.off(EVENTS.PLAYER_HP_CHANGED);
-      worldScene.events.off(EVENTS.PLAYER_ENERGY_CHANGED);
-      worldScene.events.off(EVENTS.PLAYER_XP_CHANGED);
-      worldScene.events.off(EVENTS.QUEST_STARTED);
-      worldScene.events.off(EVENTS.QUEST_UPDATED);
-      worldScene.events.off(EVENTS.QUEST_COMPLETED);
-      worldScene.events.off(EVENTS.BOSS_SPAWNED);
-      worldScene.events.off(EVENTS.BOSS_HP_CHANGED);
-      worldScene.events.off(EVENTS.BOSS_DIED);
+      worldScene.events.off(EVENTS.PLAYER_HP_CHANGED,     this._onHpChanged,       this);
+      worldScene.events.off(EVENTS.PLAYER_ENERGY_CHANGED, this._onEnergyChanged,   this);
+      worldScene.events.off(EVENTS.PLAYER_XP_CHANGED,     this._onXpChanged,       this);
+      worldScene.events.off(EVENTS.QUEST_STARTED,         this._onQuestStarted,    this);
+      worldScene.events.off(EVENTS.QUEST_UPDATED,         this._onQuestUpdated,    this);
+      worldScene.events.off(EVENTS.QUEST_COMPLETED,       this._onQuestCompleted,  this);
+      worldScene.events.off(EVENTS.BOSS_SPAWNED,          this._onBossSpawned,     this);
+      worldScene.events.off(EVENTS.BOSS_HP_CHANGED,       this._onBossHpChanged,   this);
+      worldScene.events.off(EVENTS.BOSS_DIED,             this._onBossDied,        this);
     });
   }
 
@@ -363,13 +365,17 @@ class UIScene extends Phaser.Scene {
 
   /**
    * Actualiza la barra de XP y el texto de nivel.
+   *
+   * BUG-02 fix: usamos this._xpToNext (recibido del evento PLAYER_XP_CHANGED)
+   * en vez de calcular level * 100, ya que Player.js usa xpToNext *= 1.4
+   * — una fórmula distinta que causaba que la barra nunca llegara al 100%.
+   *
+   * BUG-07 fix: usamos HUD_BAR_WIDTH como constante semántica
+   * en vez de la expresión (HUD_PADDING + 8 + 240) hardcodeada.
    */
   _updateXPBar() {
-    // XP necesario para el siguiente nivel: nivel * 100 (fórmula simple)
-    const xpNeeded = this._level * 100;
-    const ratio    = Math.min(1, this._xp / xpNeeded);
-
-    this._xpBar.width = (HUD_PADDING + 8 + 240) * ratio; // 240 = ancho de la barra XP
+    const ratio = Math.min(1, this._xp / this._xpToNext);
+    this._xpBar.width = HUD_BAR_WIDTH * ratio;
     this._levelText.setText(`Nv. ${this._level}`);
   }
 
@@ -413,12 +419,19 @@ class UIScene extends Phaser.Scene {
 
   _updateBossUI(data) {
     const ratio = Math.max(0, data.current / data.max);
-    // Animar la reducción de la barra
-    this.tweens.add({
+
+    // OPT-03 fix: cancelar el tween anterior antes de crear uno nuevo.
+    // Sin esto, golpear al boss 10 veces rápido crea 10 tweens simultáneos
+    // sobre la misma barra, causando comportamiento errático y desperdicio de CPU.
+    if (this._bossHpTween) {
+      this._bossHpTween.stop();
+    }
+    this._bossHpTween = this.tweens.add({
       targets: this._bossHpFill,
       width: 800 * ratio,
       duration: 200,
-      ease: 'Sine.easeOut'
+      ease: 'Sine.easeOut',
+      onComplete: () => { this._bossHpTween = null; },
     });
 
     if (ratio < 0.33) {
