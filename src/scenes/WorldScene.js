@@ -133,6 +133,10 @@ class WorldScene extends Phaser.Scene {
     // Instanciar el sistema de misiones
     this._questSystem = new QuestSystem(this, questsData);
 
+    // OPT-02: Inicializar grupos físicos globales antes de spawnear entidades
+    this._enemiesGroup = this.physics.add.group();
+    this._projectilesGroup = this.physics.add.group();
+
     // 1. Mapa placeholder (tiles de colores)
     this._createPlaceholderMap();
 
@@ -494,10 +498,6 @@ class WorldScene extends Phaser.Scene {
    * Jugador ↔ Paredes, Enemigos ↔ Paredes, Enemigos ↔ Jugador.
    */
   _setupCollisions() {
-    // OPT-02: Inicializar grupos físicos globales para enemigos y proyectiles
-    this._enemiesGroup = this.physics.add.group();
-    this._projectilesGroup = this.physics.add.group();
-
     // Jugador no puede atravesar paredes
     this.physics.add.collider(this._player.sprite, this._walls);
 
