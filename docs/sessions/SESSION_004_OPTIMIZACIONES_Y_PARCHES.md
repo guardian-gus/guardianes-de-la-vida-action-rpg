@@ -88,12 +88,15 @@ Posteriormente, en `_setupCollisions()`, se eliminó la duplicidad y sobrescritu
 
 ### 4. Sólidos en Entidades (Evitar Sobreposiciones) y Hitbox de Contacto Exacto del Boss
 
-#### Mitigación de Sobreposición de Entidades (Bumping)
-*   **Problema:** Los enemigos y el jugador utilizaban únicamente zonas físicas de solapamiento (`overlap`). Esto permitía que los enemigos caminaran de forma no natural sobre el jugador y se apilaran unos encima de otros en un solo píxel, atravesándose constantemente. Los NPCs estáticos también eran completamente traspasables.
+#### Mitigación de Sobreposición de Entidades y Bug del Sandwich (Bumping)
+*   **Problema:** 
+    1.  Los enemigos y el jugador utilizaban únicamente zonas físicas de solapamiento (`overlap`). Esto permitía que los enemigos caminaran de forma no natural sobre el jugador y se apilaran unos encima de otros, atravesándose constantemente. Los NPCs estáticos también eran completamente traspasables.
+    2.  **El Bug del Sandwich (Atravesar Muros por Fuerza):** Al implementar el colisionador sólido entre el jugador y los enemigos, si un enemigo empujaba continuamente al jugador hacia una pared, la colisión de doble resolución de Phaser Arcade Physics ("sandwich bug") empujaba al jugador *a través* del muro estático, dejándolo atrapado fuera del mapa.
 *   **Solución Aplicada:**
-    1.  Se cambió el `overlap` de daño por contacto de enemigos contra el jugador por un `collider` físico sólido: `this.physics.add.collider(this._player.sprite, this._enemiesGroup, callback)`. Esto hace que el motor físico empuje y separe de forma natural a los personajes al hacer contacto, previniendo que caminen por encima del jugador.
-    2.  Se añadió un colisionador entre los propios enemigos (`this.physics.add.collider(this._enemiesGroup, this._enemiesGroup)`). Ahora los enemigos se empujan y distribuyen de manera fluida y táctica al rodear al jugador, evitando apilarse en el mismo punto.
-    3.  Se registraron colisionadores sólidos contra los NPCs estáticos (`this._npcGroup`), bloqueando el paso de forma real tanto para el jugador como para los virus.
+    1.  Se cambió el `overlap` de daño por contacto de enemigos contra el jugador por un `collider` físico sólido: `this.physics.add.collider(this._player.sprite, this._enemiesGroup, callback)`.
+    2.  **Inmunidad de Fuerza (setPushable):** Se configuró `this.sprite.body.setPushable(false)` en `Player.js` y `Boss.js`. Esto indica a Phaser que el jugador y el jefe son "rocas" inamovibles ante empujes físicos automáticos de otros cuerpos dinámicos. Los enemigos se bloquean físicamente contra el jugador y viceversa, pero **no pueden desplazarlo**, eliminando por completo el bug del sandwich contra las paredes del mapa.
+    3.  Se añadió un colisionador entre los propios enemigos (`this.physics.add.collider(this._enemiesGroup, this._enemiesGroup)`). Ahora los enemigos se empujan y distribuyen de manera fluida y táctica al rodear al jugador, evitando apilarse en el mismo punto.
+    4.  Se registraron colisionadores sólidos contra los NPCs estáticos (`this._npcGroup`), bloqueando el paso de forma real tanto para el jugador como para los virus.
 
 #### Hitbox de Contacto al Primer Toque del Boss
 *   **Problema:** El proyectil debía explotar exactamente al tener contacto con la silueta visual exterior del Boss. Al haberse reducido el núcleo del Boss a 48x48 (para pruebas previas), el proyectil penetraba el sprite del jefe antes de hacer daño, lo que no coincidía con su silueta.
