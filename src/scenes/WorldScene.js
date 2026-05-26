@@ -509,8 +509,8 @@ class WorldScene extends Phaser.Scene {
       }
     });
 
-    // Enemigos hacen daño por contacto al jugador
-    this.physics.add.overlap(
+    // Enemigos sólidos contra el jugador (evita sobreposición, empujándose mutuamente al hacer daño)
+    this.physics.add.collider(
       this._player.sprite,
       this._enemiesGroup,
       (_playerSprite, enemySprite) => {
@@ -520,6 +520,15 @@ class WorldScene extends Phaser.Scene {
         }
       }
     );
+
+    // Evitar que los enemigos se sobrepongan entre sí (se empujan y dispersan naturalmente)
+    this.physics.add.collider(this._enemiesGroup, this._enemiesGroup);
+
+    // Evitar que el jugador o enemigos caminen sobre NPCs estáticos
+    if (this._npcGroup) {
+      this.physics.add.collider(this._player.sprite, this._npcGroup);
+      this.physics.add.collider(this._enemiesGroup, this._npcGroup);
+    }
 
     // Proyectiles hacen daño a enemigos (registrado globalmente una vez)
     this.physics.add.overlap(

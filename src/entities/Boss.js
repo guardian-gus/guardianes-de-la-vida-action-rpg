@@ -22,22 +22,21 @@ class Boss extends Enemy {
     this._color = parseInt(data.color, 16) || 0xE67E22;
     this._hasDrawn = false; // Reset flag to redraw with Boss color on next frame
     
-    // Ajustar el cuerpo físico del jefe para ser un núcleo central (Core Hitbox) de 48x48
-    // En Phaser 3, body.setSize() opera en el espacio de la textura original. Dado que el sprite de 96x96
-    // tiene una textura base de 32x32 (escala 3x), debemos compensar la escala dividiendo las dimensiones
-    // deseadas por la escala del sprite para obtener un cuerpo físico exacto de 48x48 y centrado.
+    // Ajustar el cuerpo físico del jefe para coincidir exactamente con su tamaño visual de 96x96
+    // Esto asegura que los proyectiles y golpes hagan contacto exactamente al primer toque con la caja visual.
+    // Usamos el espacio de textura (32x32) con compensación de escala 3x para un alineamiento del 100% exacto.
     if (this.sprite && this.sprite.body) {
       const scaleX = this.sprite.scaleX || 1;
       const scaleY = this.sprite.scaleY || 1;
 
-      const worldTargetWidth = 48;
-      const worldTargetHeight = 48;
+      const worldTargetWidth = 96;
+      const worldTargetHeight = 96;
 
-      const textureWidth = worldTargetWidth / scaleX;   // 48 / 3 = 16
-      const textureHeight = worldTargetHeight / scaleY; // 48 / 3 = 16
+      const textureWidth = worldTargetWidth / scaleX;   // 96 / 3 = 32
+      const textureHeight = worldTargetHeight / scaleY; // 96 / 3 = 32
 
-      const offsetX = (this.sprite.width - textureWidth) / 2;   // (32 - 16)/2 = 8
-      const offsetY = (this.sprite.height - textureHeight) / 2; // (32 - 16)/2 = 8
+      const offsetX = (this.sprite.width - textureWidth) / 2;   // (32 - 32)/2 = 0
+      const offsetY = (this.sprite.height - textureHeight) / 2; // (32 - 32)/2 = 0
 
       this.sprite.body.setSize(textureWidth, textureHeight);
       this.sprite.body.setOffset(offsetX, offsetY);
